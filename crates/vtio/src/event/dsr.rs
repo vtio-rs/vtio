@@ -285,6 +285,26 @@ pub struct RequestDataIntegrityStatus;
 #[vtansi(csi, private = '?', params = ["85"], finalbyte = 'n')]
 pub struct RequestMultipleSessionStatus;
 
+/// Request Current Color Preference.
+///
+/// The terminal replies with [`DsrReport`] containing
+/// [`DsrReportKind::ColorPreference`].
+///
+/// See <https://contour-terminal.org/vt-extensions/color-palette-update-notifications/>
+/// for more information.
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, private = '?', params = ["996"], finalbyte = 'n')]
+pub struct RequestColorPreference;
+
 // ============================================================================
 // Private DSR Reports
 // ============================================================================
@@ -393,6 +413,28 @@ pub enum MultipleSessionStatus {
     NotConfigured = 83,
 }
 
+/// Color preference status values.
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    Default,
+    num_enum::TryFromPrimitive,
+    num_enum::IntoPrimitive,
+)]
+#[repr(u8)]
+pub enum ColorPreference {
+    /// Dark mode is preferred.
+    #[default]
+    DarkMode = 1,
+    /// Light mode is preferred.
+    LightMode = 2,
+}
+
 /// Private DSR report kind.
 ///
 /// This enum represents the different types of DSR reports that can be
@@ -465,6 +507,11 @@ pub enum DsrReportKind {
         /// Checksum value.
         checksum: u16,
     },
+
+    /// Color preference report.
+    ///
+    /// Response to [`RequestColorPreference`]
+    ColorPreference(ColorPreference),
 
     /// Unknown or unrecognized DSR report.
     ///
@@ -541,6 +588,10 @@ impl vtansi::AnsiEncode for DsrReportKind {
                 )?;
                 Ok(count)
             }
+            DsrReportKind::ColorPreference(color) => {
+                let code: u8 = (*color).into();
+                <u8 as vtansi::AnsiEncode>::encode_ansi_into(&code, sink)
+            }
             DsrReportKind::Unknown { status, params } => {
                 let mut count = <u16 as vtansi::AnsiEncode>::encode_ansi_into(
                     status, sink,
@@ -614,6 +665,11 @@ impl<'a> vtansi::TryFromAnsi<'a> for DsrReportKind {
             ),
             83 => DsrReportKind::MultipleSession(
                 MultipleSessionStatus::NotConfigured,
+            ),
+            997 => DsrReportKind::ColorPreference(
+                (params.get(1).copied().unwrap_or(1) as u8)
+                    .try_into()
+                    .unwrap_or_default(),
             ),
             _ => DsrReportKind::Unknown {
                 status,

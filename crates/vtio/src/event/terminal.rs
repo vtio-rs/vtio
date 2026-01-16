@@ -284,6 +284,14 @@ terminal_mode!(
     SynchronizedUpdateMode, private = '?', params = ["2006"]
 );
 
+terminal_mode!(
+    /// Request unsolicited DSR on color palette updates.
+    ///
+    /// See <https://contour-terminal.org/vt-extensions/color-palette-update-notifications/>
+    /// for more details.
+    UnsolicitedColorPaletteReportMode, private = '?', params = ["2031"]
+);
+
 /// Bracketed paste start.
 #[derive(
     Debug,
