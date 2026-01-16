@@ -23,6 +23,13 @@
 //! When encoding, optional parameters that are `None` are omitted, along with
 //! any subsequent parameters.
 
+/// Current location report (hostname and directory).
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "7")]
+pub struct CurrentLocation<'a>(pub &'a str);
+
 /// A command that marks the beginning of a shell prompt.
 ///
 /// This sequence (OSC 133;A) indicates where a new prompt starts. Terminal
