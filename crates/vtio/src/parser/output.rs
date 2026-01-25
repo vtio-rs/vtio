@@ -379,6 +379,7 @@ fn parse_dcs<F>(
 mod tests {
     use super::*;
     use crate::event::PlainText;
+    use crate::event::sgr::{Sgr, SgrAttr, parse_sgr_params};
     use better_any::TidExt;
 
     fn count_events(input: &[u8]) -> usize {
@@ -489,6 +490,109 @@ mod tests {
     fn test_csi_sgr() {
         // CSI 1;31 m - bold red
         let count = count_events(b"\x1b[1;31m");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_csi_sgr_extended_256_color() {
+        // CSI 38;5;196 m - 256-color foreground (red)
+        let count = count_events(b"\x1b[38;5;196m");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_csi_sgr_extended_rgb_color() {
+        // CSI 38;2;255;128;0 m - RGB foreground (orange)
+        let count = count_events(b"\x1b[38;2;255;128;0m");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_csi_sgr_complex_with_extended_colors() {
+        // CSI 1;38;5;196;48;2;0;0;128 m - bold + 256 fg + RGB bg
+        let count = count_events(b"\x1b[1;38;5;196;48;2;0;0;128m");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_csi_sgr_colon_format() {
+        // CSI 38:5:196 m - 256-color using colon format (ITU T.416)
+        let count = count_events(b"\x1b[38:5:196m");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_csi_sgr_underline_style() {
+        // CSI 4:3 m - curly underline (kitty extension)
+        let count = count_events(b"\x1b[4:3m");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_parse_sgr_params_semicolon_extended_colors() {
+        use crate::event::sgr::ExtendedColor;
+
+        // Test parsing 38;5;196 (256-color foreground)
+        let attrs = parse_sgr_params(b"38;5;196").unwrap();
+        assert_eq!(attrs.len(), 1);
+        assert_eq!(attrs[0], SgrAttr::Foreground(ExtendedColor::Palette(196)));
+
+        // Test parsing 38;2;255;128;0 (RGB foreground)
+        let attrs = parse_sgr_params(b"38;2;255;128;0").unwrap();
+        assert_eq!(attrs.len(), 1);
+        assert_eq!(
+            attrs[0],
+            SgrAttr::Foreground(ExtendedColor::Rgb {
+                r: 255,
+                g: 128,
+                b: 0
+            })
+        );
+
+        // Test parsing complex sequence: 1;38;5;196;48;2;0;0;128
+        let attrs = parse_sgr_params(b"1;38;5;196;48;2;0;0;128").unwrap();
+        assert_eq!(attrs.len(), 3);
+        assert_eq!(attrs[0], SgrAttr::Bold);
+        assert_eq!(attrs[1], SgrAttr::Foreground(ExtendedColor::Palette(196)));
+        assert_eq!(
+            attrs[2],
+            SgrAttr::Background(ExtendedColor::Rgb { r: 0, g: 0, b: 128 })
+        );
+    }
+
+    #[test]
+    fn test_sgr_roundtrip_extended_256() {
+        use crate::event::sgr::ExtendedColor;
+        use vtansi::AnsiEncode;
+
+        // Create a 256-color SGR, encode it, then verify
+        let sgr = Sgr::new(SgrAttr::Foreground(ExtendedColor::Palette(196)));
+        let mut buf = Vec::new();
+        sgr.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(buf, b"\x1b[38:5:196m");
+
+        // Parse through output parser
+        let count = count_events(&buf);
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_sgr_roundtrip_extended_rgb() {
+        use crate::event::sgr::ExtendedColor;
+        use vtansi::AnsiEncode;
+
+        // Create an RGB SGR, encode it, then verify
+        let sgr = Sgr::new(SgrAttr::Foreground(ExtendedColor::Rgb {
+            r: 255,
+            g: 128,
+            b: 64,
+        }));
+        let mut buf = Vec::new();
+        sgr.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(buf, b"\x1b[38:2::255:128:64m");
+
+        // Parse through output parser
+        let count = count_events(&buf);
         assert_eq!(count, 1);
     }
 
