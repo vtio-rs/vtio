@@ -13,12 +13,7 @@
 ///
 /// Request the terminal's operating status.
 ///
-/// The terminal always replies with:
-///
-/// `CSI 0 n` (operating correctly)
-///
-/// This is a basic status check that indicates the terminal is
-/// functioning and able to respond to commands.
+/// The terminal always replies with [`OperatingStatusReport`] (`CSI 0 n`).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn-5/> for terminal
 /// support specifics.
@@ -40,7 +35,6 @@ pub struct RequestOperatingStatus;
 /// Response from the terminal to [`RequestOperatingStatus`].
 ///
 /// This report indicates that the terminal is operating correctly.
-/// The status code is always 0.
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn-5/> for terminal
 /// support specifics.
@@ -63,11 +57,9 @@ pub struct OperatingStatusReport;
 
 /// Request Operating Status (private mode) (`DSR`).
 ///
-/// Request the terminal's operating status using the DEC private mode
-/// variant.
+/// Request the terminal's operating status using the DEC private mode variant.
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::OperatingStatus`].
+/// The terminal replies with [`OperatingStatusReportPrivate`].
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -86,10 +78,9 @@ pub struct RequestOperatingStatusPrivate;
 
 /// Request Printer Status (`DSR`).
 ///
-/// Request the printer status (historically DSR 15).
+/// Request the printer status (DSR 15).
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::Printer`].
+/// The terminal replies with [`PrinterStatusReport`].
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -108,10 +99,9 @@ pub struct RequestPrinterStatus;
 
 /// Request User Defined Key Status (`DSR`).
 ///
-/// Request the status of user-defined keys (historically DSR 25).
+/// Request the status of user-defined keys (DSR 25).
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::Udk`].
+/// The terminal replies with [`UdkStatusReport`].
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -130,10 +120,9 @@ pub struct RequestUdkStatus;
 
 /// Request Keyboard Status (`DSR`).
 ///
-/// Request the keyboard status (historically DSR 26).
+/// Request the keyboard status (DSR 26).
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::Keyboard`].
+/// The terminal replies with [`KeyboardStatusReport`].
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -152,10 +141,9 @@ pub struct RequestKeyboardStatus;
 
 /// Request DEC Locator Status (`DSR`).
 ///
-/// Request the status of the DEC locator (mouse).
+/// Request the status of the DEC locator (mouse) (DSR 55).
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::Locator`].
+/// The terminal replies with [`LocatorStatusReport`].
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -174,10 +162,9 @@ pub struct RequestLocatorStatus;
 
 /// Request DEC Locator Type (`DSR`).
 ///
-/// Request the type of the DEC locator (mouse).
+/// Request the type of the DEC locator (mouse) (DSR 56).
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::LocatorType`].
+/// The terminal replies with [`LocatorTypeReport`].
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -196,10 +183,9 @@ pub struct RequestLocatorType;
 
 /// Request Macro Space Status (`DSR`).
 ///
-/// Request the available macro space (historically DSR 62).
+/// Request the available macro space (DSR 62).
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::MacroSpace`].
+/// The terminal replies with [`MacroSpaceReport`].
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -218,10 +204,9 @@ pub struct RequestMacroSpaceStatus;
 
 /// Request Memory Checksum (`DSR`).
 ///
-/// Request a memory checksum (historically DSR 63).
+/// Request a memory checksum (DSR 63).
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::MemoryChecksum`].
+/// The terminal replies with [`MemoryChecksumReport`].
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -243,10 +228,9 @@ pub struct RequestMemoryChecksum {
 
 /// Request Data Integrity Status (`DSR`).
 ///
-/// Request data integrity status (historically DSR 75).
+/// Request data integrity status (DSR 75).
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::DataIntegrity`].
+/// The terminal replies with [`DataIntegrityReport`].
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -265,10 +249,9 @@ pub struct RequestDataIntegrityStatus;
 
 /// Request Multiple Session Status (`DSR`).
 ///
-/// Request multiple session status (historically DSR 85).
+/// Request multiple session status (DSR 85).
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::MultipleSession`].
+/// The terminal replies with [`MultipleSessionReport`].
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -287,8 +270,7 @@ pub struct RequestMultipleSessionStatus;
 
 /// Request Current Color Preference.
 ///
-/// The terminal replies with [`DsrReport`] containing
-/// [`DsrReportKind::ColorPreference`].
+/// The terminal replies with [`ColorPreferenceReport`].
 ///
 /// See <https://contour-terminal.org/vt-extensions/color-palette-update-notifications/>
 /// for more information.
@@ -306,7 +288,7 @@ pub struct RequestMultipleSessionStatus;
 pub struct RequestColorPreference;
 
 // ============================================================================
-// Private DSR Reports
+// Private DSR Reports - Status Enums
 // ============================================================================
 
 /// Printer status values.
@@ -318,12 +300,16 @@ pub struct RequestColorPreference;
     Clone,
     Copy,
     Hash,
+    Default,
     num_enum::TryFromPrimitive,
     num_enum::IntoPrimitive,
+    vtansi::derive::FromAnsi,
+    vtansi::derive::ToAnsi,
 )]
 #[repr(u8)]
 pub enum PrinterStatus {
     /// Printer is ready.
+    #[default]
     Ready = 10,
     /// Printer is not ready.
     NotReady = 11,
@@ -340,12 +326,16 @@ pub enum PrinterStatus {
     Clone,
     Copy,
     Hash,
+    Default,
     num_enum::TryFromPrimitive,
     num_enum::IntoPrimitive,
+    vtansi::derive::FromAnsi,
+    vtansi::derive::ToAnsi,
 )]
 #[repr(u8)]
 pub enum UdkStatus {
     /// User-defined keys are locked.
+    #[default]
     Locked = 20,
     /// User-defined keys are unlocked.
     Unlocked = 21,
@@ -360,12 +350,16 @@ pub enum UdkStatus {
     Clone,
     Copy,
     Hash,
+    Default,
     num_enum::TryFromPrimitive,
     num_enum::IntoPrimitive,
+    vtansi::derive::FromAnsi,
+    vtansi::derive::ToAnsi,
 )]
 #[repr(u8)]
 pub enum LocatorStatus {
     /// No locator device is available.
+    #[default]
     NoLocator = 50,
     /// A locator device is available.
     Available = 53,
@@ -380,12 +374,16 @@ pub enum LocatorStatus {
     Clone,
     Copy,
     Hash,
+    Default,
     num_enum::TryFromPrimitive,
     num_enum::IntoPrimitive,
+    vtansi::derive::FromAnsi,
+    vtansi::derive::ToAnsi,
 )]
 #[repr(u8)]
 pub enum DataIntegrityStatus {
     /// Ready, no malfunction detected.
+    #[default]
     Ready = 70,
     /// Malfunction detected.
     Malfunction = 71,
@@ -400,12 +398,16 @@ pub enum DataIntegrityStatus {
     Clone,
     Copy,
     Hash,
+    Default,
     num_enum::TryFromPrimitive,
     num_enum::IntoPrimitive,
+    vtansi::derive::FromAnsi,
+    vtansi::derive::ToAnsi,
 )]
 #[repr(u8)]
 pub enum MultipleSessionStatus {
     /// Sessions are available.
+    #[default]
     Available = 80,
     /// No sessions are available.
     NotAvailable = 81,
@@ -425,6 +427,8 @@ pub enum MultipleSessionStatus {
     Default,
     num_enum::TryFromPrimitive,
     num_enum::IntoPrimitive,
+    vtansi::derive::FromAnsi,
+    vtansi::derive::ToAnsi,
 )]
 #[repr(u8)]
 pub enum ColorPreference {
@@ -435,320 +439,248 @@ pub enum ColorPreference {
     LightMode = 2,
 }
 
-/// Private DSR report kind.
+// ============================================================================
+// Private DSR Reports - Response Structs
+// ============================================================================
+
+/// Operating Status Report (private mode).
 ///
-/// This enum represents the different types of DSR reports that can be
-/// received from the terminal. The first parameter of the CSI sequence
-/// determines which variant is used.
-#[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Hash)]
-pub enum DsrReportKind {
-    /// Operating status report (private mode).
-    ///
-    /// Response to [`RequestOperatingStatusPrivate`].
-    /// Indicates the terminal is operating correctly.
-    OperatingStatus,
-
-    /// Printer status report.
-    ///
-    /// Response to [`RequestPrinterStatus`].
-    Printer(PrinterStatus),
-
-    /// User-defined key status report.
-    ///
-    /// Response to [`RequestUdkStatus`].
-    Udk(UdkStatus),
-
-    /// Keyboard status report.
-    ///
-    /// Response to [`RequestKeyboardStatus`].
-    /// Contains the keyboard dialect code.
-    Keyboard {
-        /// Keyboard dialect code.
-        dialect: u8,
-    },
-
-    /// DEC locator status report.
-    ///
-    /// Response to [`RequestLocatorStatus`].
-    Locator(LocatorStatus),
-
-    /// DEC locator type report.
-    ///
-    /// Response to [`RequestLocatorType`].
-    LocatorType {
-        /// Locator type code.
-        locator_type: u8,
-    },
-
-    /// Data integrity status report.
-    ///
-    /// Response to [`RequestDataIntegrityStatus`].
-    DataIntegrity(DataIntegrityStatus),
-
-    /// Multiple session status report.
-    ///
-    /// Response to [`RequestMultipleSessionStatus`].
-    MultipleSession(MultipleSessionStatus),
-
-    /// Macro space status report.
-    ///
-    /// Response to [`RequestMacroSpaceStatus`].
-    MacroSpace {
-        /// Available macro space in bytes.
-        space: u16,
-    },
-
-    /// Memory checksum report.
-    ///
-    /// Response to [`RequestMemoryChecksum`].
-    MemoryChecksum {
-        /// Memory region identifier.
-        id: u16,
-        /// Checksum value.
-        checksum: u16,
-    },
-
-    /// Color preference report.
-    ///
-    /// Response to [`RequestColorPreference`]
-    ColorPreference(ColorPreference),
-
-    /// Unknown or unrecognized DSR report.
-    ///
-    /// Contains the raw status code for reports we don't recognize.
-    Unknown {
-        /// The first parameter (status code).
-        status: u16,
-        /// Additional parameters, if any.
-        params: Vec<u16>,
-    },
-}
-
-impl vtansi::AnsiEncode for DsrReportKind {
-    fn encode_ansi_into<W: std::io::Write + ?Sized>(
-        &self,
-        sink: &mut W,
-    ) -> Result<usize, vtansi::EncodeError> {
-        match self {
-            DsrReportKind::OperatingStatus => {
-                vtansi::write_byte_into(sink, b'0')
-            }
-            DsrReportKind::Printer(status) => {
-                let code: u8 = (*status).into();
-                <u8 as vtansi::AnsiEncode>::encode_ansi_into(&code, sink)
-            }
-            DsrReportKind::Udk(status) => {
-                let code: u8 = (*status).into();
-                <u8 as vtansi::AnsiEncode>::encode_ansi_into(&code, sink)
-            }
-            DsrReportKind::Keyboard { dialect } => {
-                let mut count = vtansi::write_str_into(sink, "27")?;
-                count += vtansi::write_byte_into(sink, b';')?;
-                count += <u8 as vtansi::AnsiEncode>::encode_ansi_into(
-                    dialect, sink,
-                )?;
-                Ok(count)
-            }
-            DsrReportKind::Locator(status) => {
-                let code: u8 = (*status).into();
-                <u8 as vtansi::AnsiEncode>::encode_ansi_into(&code, sink)
-            }
-            DsrReportKind::LocatorType { locator_type } => {
-                let mut count = vtansi::write_str_into(sink, "57")?;
-                count += vtansi::write_byte_into(sink, b';')?;
-                count += <u8 as vtansi::AnsiEncode>::encode_ansi_into(
-                    locator_type,
-                    sink,
-                )?;
-                Ok(count)
-            }
-            DsrReportKind::DataIntegrity(status) => {
-                let code: u8 = (*status).into();
-                <u8 as vtansi::AnsiEncode>::encode_ansi_into(&code, sink)
-            }
-            DsrReportKind::MultipleSession(status) => {
-                let code: u8 = (*status).into();
-                <u8 as vtansi::AnsiEncode>::encode_ansi_into(&code, sink)
-            }
-            DsrReportKind::MacroSpace { space } => {
-                let mut count = vtansi::write_str_into(sink, "62")?;
-                count += vtansi::write_byte_into(sink, b';')?;
-                count +=
-                    <u16 as vtansi::AnsiEncode>::encode_ansi_into(space, sink)?;
-                Ok(count)
-            }
-            DsrReportKind::MemoryChecksum { id, checksum } => {
-                let mut count = vtansi::write_str_into(sink, "63")?;
-                count += vtansi::write_byte_into(sink, b';')?;
-                count +=
-                    <u16 as vtansi::AnsiEncode>::encode_ansi_into(id, sink)?;
-                count += vtansi::write_byte_into(sink, b';')?;
-                count += <u16 as vtansi::AnsiEncode>::encode_ansi_into(
-                    checksum, sink,
-                )?;
-                Ok(count)
-            }
-            DsrReportKind::ColorPreference(color) => {
-                let code: u8 = (*color).into();
-                <u8 as vtansi::AnsiEncode>::encode_ansi_into(&code, sink)
-            }
-            DsrReportKind::Unknown { status, params } => {
-                let mut count = <u16 as vtansi::AnsiEncode>::encode_ansi_into(
-                    status, sink,
-                )?;
-                for param in params {
-                    count += vtansi::write_byte_into(sink, b';')?;
-                    count += <u16 as vtansi::AnsiEncode>::encode_ansi_into(
-                        param, sink,
-                    )?;
-                }
-                Ok(count)
-            }
-        }
-    }
-}
-
-impl<'a> vtansi::TryFromAnsi<'a> for DsrReportKind {
-    fn try_from_ansi(bytes: &'a [u8]) -> Result<Self, vtansi::ParseError> {
-        // Parse semicolon-separated parameters
-        let params: Vec<u16> = bytes
-            .split(|b| *b == b';')
-            .map(|p| {
-                if p.is_empty() {
-                    Ok(0)
-                } else {
-                    <u16 as vtansi::TryFromAnsi>::try_from_ansi(p)
-                }
-            })
-            .collect::<Result<_, _>>()?;
-
-        if params.is_empty() {
-            return Err(vtansi::ParseError::InvalidValue(
-                "empty DSR report".to_string(),
-            ));
-        }
-
-        let status = params[0];
-
-        #[allow(clippy::cast_possible_truncation)]
-        Ok(match status {
-            0 => DsrReportKind::OperatingStatus,
-            10 => DsrReportKind::Printer(PrinterStatus::Ready),
-            11 => DsrReportKind::Printer(PrinterStatus::NotReady),
-            13 => DsrReportKind::Printer(PrinterStatus::NoPrinter),
-            20 => DsrReportKind::Udk(UdkStatus::Locked),
-            21 => DsrReportKind::Udk(UdkStatus::Unlocked),
-            27 => DsrReportKind::Keyboard {
-                dialect: params.get(1).copied().unwrap_or(0) as u8,
-            },
-            50 => DsrReportKind::Locator(LocatorStatus::NoLocator),
-            53 => DsrReportKind::Locator(LocatorStatus::Available),
-            57 => DsrReportKind::LocatorType {
-                locator_type: params.get(1).copied().unwrap_or(0) as u8,
-            },
-            62 => DsrReportKind::MacroSpace {
-                space: params.get(1).copied().unwrap_or(0),
-            },
-            63 => DsrReportKind::MemoryChecksum {
-                id: params.get(1).copied().unwrap_or(0),
-                checksum: params.get(2).copied().unwrap_or(0),
-            },
-            70 => DsrReportKind::DataIntegrity(DataIntegrityStatus::Ready),
-            71 => {
-                DsrReportKind::DataIntegrity(DataIntegrityStatus::Malfunction)
-            }
-            80 => {
-                DsrReportKind::MultipleSession(MultipleSessionStatus::Available)
-            }
-            81 => DsrReportKind::MultipleSession(
-                MultipleSessionStatus::NotAvailable,
-            ),
-            83 => DsrReportKind::MultipleSession(
-                MultipleSessionStatus::NotConfigured,
-            ),
-            997 => DsrReportKind::ColorPreference(
-                (params.get(1).copied().unwrap_or(1) as u8)
-                    .try_into()
-                    .unwrap_or_default(),
-            ),
-            _ => DsrReportKind::Unknown {
-                status,
-                params: params.into_iter().skip(1).collect(),
-            },
-        })
-    }
-}
-
-/// Private DSR report wrapper.
+/// Response to [`RequestOperatingStatusPrivate`].
+/// Indicates the terminal is operating correctly.
 ///
-/// This wrapper provides transparent encoding/decoding for the inner
-/// [`DsrReportKind`] enum, handling the semicolon-delimited parameters.
+/// Matches: `CSI ? 0 n`
 #[derive(
     Debug,
     PartialOrd,
     PartialEq,
     Eq,
     Clone,
+    Copy,
     Hash,
-    vtansi::derive::FromAnsi,
-    vtansi::derive::ToAnsi,
+    vtansi::derive::AnsiInput,
 )]
-#[vtansi(transparent)]
-pub struct DsrReportParams(pub DsrReportKind);
+#[vtansi(csi, private = '?', params = ["0"], finalbyte = 'n')]
+pub struct OperatingStatusReportPrivate;
 
-impl From<DsrReportKind> for DsrReportParams {
-    fn from(kind: DsrReportKind) -> Self {
-        Self(kind)
-    }
-}
-
-impl From<DsrReportParams> for DsrReportKind {
-    fn from(params: DsrReportParams) -> Self {
-        params.0
-    }
-}
-
-/// Private DSR report.
+/// Printer Status Report.
 ///
-/// This struct represents the response from the terminal using private mode
-/// DSR sequences (`CSI ? Ps n`). The parameters are parsed into the
-/// appropriate [`DsrReportKind`] variant based on the first parameter value.
+/// Response to [`RequestPrinterStatus`].
+///
+/// Matches: `CSI ? 10 n` | `CSI ? 11 n` | `CSI ? 13 n`
 #[derive(
-    Debug, PartialOrd, PartialEq, Eq, Clone, Hash, vtansi::derive::AnsiInput,
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiInput,
 )]
-#[vtansi(csi, private = '?', finalbyte = 'n')]
-pub struct DsrReport {
-    /// The report kind and associated data.
-    pub kind: DsrReportParams,
+#[vtansi(csi, private = '?', params = ["10"] | ["11"] | ["13"], finalbyte = 'n')]
+pub struct PrinterStatusReport {
+    /// The printer status.
+    #[vtansi(locate = "static_params")]
+    pub status: PrinterStatus,
 }
 
-impl DsrReport {
-    /// Create a new DSR report with the given kind.
-    #[must_use]
-    pub fn new(kind: DsrReportKind) -> Self {
-        Self {
-            kind: DsrReportParams(kind),
-        }
-    }
+/// User-Defined Key Status Report.
+///
+/// Response to [`RequestUdkStatus`].
+///
+/// Matches: `CSI ? 20 n` | `CSI ? 21 n`
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, private = '?', params = ["20"] | ["21"], finalbyte = 'n')]
+pub struct UdkStatusReport {
+    /// The UDK status.
+    #[vtansi(locate = "static_params")]
+    pub status: UdkStatus,
+}
 
-    /// Get the report kind.
-    #[must_use]
-    pub fn kind(&self) -> &DsrReportKind {
-        &self.kind.0
-    }
+/// Keyboard Status Report.
+///
+/// Response to [`RequestKeyboardStatus`].
+///
+/// Matches: `CSI ? 27 ; dialect n`
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, private = '?', params = ["27"], finalbyte = 'n')]
+pub struct KeyboardStatusReport {
+    /// Keyboard dialect code.
+    pub dialect: u8,
+}
 
-    /// Convert into the inner report kind.
-    #[must_use]
-    pub fn into_kind(self) -> DsrReportKind {
-        self.kind.0
-    }
+/// DEC Locator Status Report.
+///
+/// Response to [`RequestLocatorStatus`].
+///
+/// Matches: `CSI ? 50 n` | `CSI ? 53 n`
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, private = '?', params = ["50"] | ["53"], finalbyte = 'n')]
+pub struct LocatorStatusReport {
+    /// The locator status.
+    #[vtansi(locate = "static_params")]
+    pub status: LocatorStatus,
+}
+
+/// DEC Locator Type Report.
+///
+/// Response to [`RequestLocatorType`].
+///
+/// Matches: `CSI ? 57 ; type n`
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, private = '?', params = ["57"], finalbyte = 'n')]
+pub struct LocatorTypeReport {
+    /// Locator type code.
+    pub locator_type: u8,
+}
+
+/// Macro Space Report.
+///
+/// Response to [`RequestMacroSpaceStatus`].
+///
+/// Matches: `CSI ? 62 ; space n`
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, private = '?', params = ["62"], finalbyte = 'n')]
+pub struct MacroSpaceReport {
+    /// Available macro space in bytes.
+    pub space: u16,
+}
+
+/// Memory Checksum Report.
+///
+/// Response to [`RequestMemoryChecksum`].
+///
+/// Matches: `CSI ? 63 ; id ; checksum n`
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, private = '?', params = ["63"], finalbyte = 'n')]
+pub struct MemoryChecksumReport {
+    /// Memory region identifier.
+    pub id: u16,
+    /// Checksum value.
+    pub checksum: u16,
+}
+
+/// Data Integrity Status Report.
+///
+/// Response to [`RequestDataIntegrityStatus`].
+///
+/// Matches: `CSI ? 70 n` | `CSI ? 71 n`
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, private = '?', params = ["70"] | ["71"], finalbyte = 'n')]
+pub struct DataIntegrityReport {
+    /// The data integrity status.
+    pub status: DataIntegrityStatus,
+}
+
+/// Multiple Session Status Report.
+///
+/// Response to [`RequestMultipleSessionStatus`].
+///
+/// Matches: `CSI ? 80 n` | `CSI ? 81 n` | `CSI ? 83 n`
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, private = '?', params = ["80"] | ["81"] | ["83"], finalbyte = 'n')]
+pub struct MultipleSessionReport {
+    /// The multiple session status.
+    pub status: MultipleSessionStatus,
+}
+
+/// Color Preference Report.
+///
+/// Response to [`RequestColorPreference`].
+///
+/// Matches: `CSI ? 997 ; color n`
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, private = '?', params = ["997"], finalbyte = 'n')]
+pub struct ColorPreferenceReport {
+    /// The color preference.
+    pub color: ColorPreference,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use vtansi::AnsiEncode;
-    use vtansi::TryFromAnsi;
 
     #[test]
     fn test_request_operating_status() {
@@ -775,144 +707,54 @@ mod tests {
     }
 
     #[test]
-    fn test_dsr_report_kind_operating_status() {
-        let kind = DsrReportKind::try_from_ansi(b"0").unwrap();
-        assert_eq!(kind, DsrReportKind::OperatingStatus);
-        assert_eq!(kind.encode_ansi().unwrap(), b"0");
+    fn test_request_udk_status() {
+        assert_eq!(RequestUdkStatus.encode_ansi().unwrap(), b"\x1b[?25n");
     }
 
     #[test]
-    fn test_dsr_report_kind_printer_ready() {
-        let kind = DsrReportKind::try_from_ansi(b"10").unwrap();
-        assert_eq!(kind, DsrReportKind::Printer(PrinterStatus::Ready));
-        assert_eq!(kind.encode_ansi().unwrap(), b"10");
+    fn test_request_keyboard_status() {
+        assert_eq!(RequestKeyboardStatus.encode_ansi().unwrap(), b"\x1b[?26n");
     }
 
     #[test]
-    fn test_dsr_report_kind_printer_not_ready() {
-        let kind = DsrReportKind::try_from_ansi(b"11").unwrap();
-        assert_eq!(kind, DsrReportKind::Printer(PrinterStatus::NotReady));
+    fn test_request_locator_status() {
+        assert_eq!(RequestLocatorStatus.encode_ansi().unwrap(), b"\x1b[?55n");
     }
 
     #[test]
-    fn test_dsr_report_kind_no_printer() {
-        let kind = DsrReportKind::try_from_ansi(b"13").unwrap();
-        assert_eq!(kind, DsrReportKind::Printer(PrinterStatus::NoPrinter));
+    fn test_request_locator_type() {
+        assert_eq!(RequestLocatorType.encode_ansi().unwrap(), b"\x1b[?56n");
     }
 
     #[test]
-    fn test_dsr_report_kind_udk_locked() {
-        let kind = DsrReportKind::try_from_ansi(b"20").unwrap();
-        assert_eq!(kind, DsrReportKind::Udk(UdkStatus::Locked));
-    }
-
-    #[test]
-    fn test_dsr_report_kind_udk_unlocked() {
-        let kind = DsrReportKind::try_from_ansi(b"21").unwrap();
-        assert_eq!(kind, DsrReportKind::Udk(UdkStatus::Unlocked));
-    }
-
-    #[test]
-    fn test_dsr_report_kind_keyboard() {
-        let kind = DsrReportKind::try_from_ansi(b"27;1").unwrap();
-        assert_eq!(kind, DsrReportKind::Keyboard { dialect: 1 });
-        assert_eq!(kind.encode_ansi().unwrap(), b"27;1");
-    }
-
-    #[test]
-    fn test_dsr_report_kind_no_locator() {
-        let kind = DsrReportKind::try_from_ansi(b"50").unwrap();
-        assert_eq!(kind, DsrReportKind::Locator(LocatorStatus::NoLocator));
-    }
-
-    #[test]
-    fn test_dsr_report_kind_locator_available() {
-        let kind = DsrReportKind::try_from_ansi(b"53").unwrap();
-        assert_eq!(kind, DsrReportKind::Locator(LocatorStatus::Available));
-    }
-
-    #[test]
-    fn test_dsr_report_kind_locator_type() {
-        let kind = DsrReportKind::try_from_ansi(b"57;2").unwrap();
-        assert_eq!(kind, DsrReportKind::LocatorType { locator_type: 2 });
-    }
-
-    #[test]
-    fn test_dsr_report_kind_data_integrity_ready() {
-        let kind = DsrReportKind::try_from_ansi(b"70").unwrap();
+    fn test_request_macro_space_status() {
         assert_eq!(
-            kind,
-            DsrReportKind::DataIntegrity(DataIntegrityStatus::Ready)
+            RequestMacroSpaceStatus.encode_ansi().unwrap(),
+            b"\x1b[?62n"
         );
     }
 
     #[test]
-    fn test_dsr_report_kind_data_integrity_malfunction() {
-        let kind = DsrReportKind::try_from_ansi(b"71").unwrap();
+    fn test_request_data_integrity_status() {
         assert_eq!(
-            kind,
-            DsrReportKind::DataIntegrity(DataIntegrityStatus::Malfunction)
+            RequestDataIntegrityStatus.encode_ansi().unwrap(),
+            b"\x1b[?75n"
         );
     }
 
     #[test]
-    fn test_dsr_report_kind_sessions_available() {
-        let kind = DsrReportKind::try_from_ansi(b"80").unwrap();
+    fn test_request_multiple_session_status() {
         assert_eq!(
-            kind,
-            DsrReportKind::MultipleSession(MultipleSessionStatus::Available)
+            RequestMultipleSessionStatus.encode_ansi().unwrap(),
+            b"\x1b[?85n"
         );
     }
 
     #[test]
-    fn test_dsr_report_kind_sessions_not_available() {
-        let kind = DsrReportKind::try_from_ansi(b"81").unwrap();
+    fn test_request_color_preference() {
         assert_eq!(
-            kind,
-            DsrReportKind::MultipleSession(MultipleSessionStatus::NotAvailable)
-        );
-    }
-
-    #[test]
-    fn test_dsr_report_kind_sessions_not_configured() {
-        let kind = DsrReportKind::try_from_ansi(b"83").unwrap();
-        assert_eq!(
-            kind,
-            DsrReportKind::MultipleSession(
-                MultipleSessionStatus::NotConfigured
-            )
-        );
-    }
-
-    #[test]
-    fn test_dsr_report_kind_macro_space() {
-        let kind = DsrReportKind::try_from_ansi(b"62;1024").unwrap();
-        assert_eq!(kind, DsrReportKind::MacroSpace { space: 1024 });
-        assert_eq!(kind.encode_ansi().unwrap(), b"62;1024");
-    }
-
-    #[test]
-    fn test_dsr_report_kind_memory_checksum() {
-        let kind = DsrReportKind::try_from_ansi(b"63;1;65535").unwrap();
-        assert_eq!(
-            kind,
-            DsrReportKind::MemoryChecksum {
-                id: 1,
-                checksum: 65535
-            }
-        );
-        assert_eq!(kind.encode_ansi().unwrap(), b"63;1;65535");
-    }
-
-    #[test]
-    fn test_dsr_report_kind_unknown() {
-        let kind = DsrReportKind::try_from_ansi(b"99;1;2;3").unwrap();
-        assert_eq!(
-            kind,
-            DsrReportKind::Unknown {
-                status: 99,
-                params: vec![1, 2, 3]
-            }
+            RequestColorPreference.encode_ansi().unwrap(),
+            b"\x1b[?996n"
         );
     }
 }
