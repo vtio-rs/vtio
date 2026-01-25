@@ -753,7 +753,7 @@ impl AnsiEncode for EnhancedKeyEncoding {
 ///
 /// The `mode_flags` parameter is a [`KeyboardModeFlags`] bitmask of keyboard modes,
 /// typically collected from terminal mode query responses using
-/// [`crate::event::mode::collect_mode_flags`].
+/// [`crate::event::keyboard::collect_mode_flags`].
 ///
 /// # Example
 ///

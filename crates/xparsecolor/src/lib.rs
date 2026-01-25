@@ -546,7 +546,7 @@ impl XColor {
         self.encode_into(&mut &mut buf[..])
     }
 
-    /// Encode this color into a new Vec<u8>.
+    /// Encode this color into a new `Vec<u8>`.
     ///
     /// # Errors
     ///

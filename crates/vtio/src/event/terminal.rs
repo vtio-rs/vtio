@@ -949,7 +949,7 @@ impl<'a> vtansi::TryFromAnsi<'a> for HexString {
 
 /// Wrapper for encoding multiple hex-encoded query strings.
 ///
-/// Used internally by [`RequestTermcapQuery`] to encode the query
+/// Used internally by [`RequestTermcap`] to encode the query
 /// data as semicolon-separated hex strings.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct HexStringList(Vec<HexString>);
@@ -1161,7 +1161,7 @@ impl<'a> vtansi::TryFromAnsi<'a> for TermcapQueryResultList {
 
 /// Response to termcap/terminfo capability query (`XTGETTCAP`).
 ///
-/// Response from the terminal to [`RequestTermcapQuery`].
+/// Response from the terminal to [`RequestTermcap`].
 ///
 /// The response format depends on whether the query was successful:
 ///
