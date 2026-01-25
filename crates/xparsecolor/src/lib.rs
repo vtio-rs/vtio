@@ -772,40 +772,40 @@ impl fmt::Display for XColor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             XColor::Rgb { red, green, blue } => {
-                write!(f, "rgb:{:04x}/{:04x}/{:04x}", red, green, blue)
+                write!(f, "rgb:{red:04x}/{green:04x}/{blue:04x}")
             }
             XColor::RgbIntensity { red, green, blue } => {
-                write!(f, "rgbi:{}/{}/{}", red, green, blue)
+                write!(f, "rgbi:{red}/{green}/{blue}")
             }
             XColor::CieXyz { x, y, z } => {
-                write!(f, "CIEXYZ:{}/{}/{}", x, y, z)
+                write!(f, "CIEXYZ:{x}/{y}/{z}")
             }
             XColor::CieUvY {
                 u_prime,
                 v_prime,
                 y,
             } => {
-                write!(f, "CIEuvY:{}/{}/{}", u_prime, v_prime, y)
+                write!(f, "CIEuvY:{u_prime}/{v_prime}/{y}")
             }
             XColor::CieXyY { x, y, y_luminance } => {
-                write!(f, "CIExyY:{}/{}/{}", x, y, y_luminance)
+                write!(f, "CIExyY:{x}/{y}/{y_luminance}")
             }
             XColor::CieLab {
                 l_star,
                 a_star,
                 b_star,
             } => {
-                write!(f, "CIELab:{}/{}/{}", l_star, a_star, b_star)
+                write!(f, "CIELab:{l_star}/{a_star}/{b_star}")
             }
             XColor::CieLuv {
                 l_star,
                 u_star,
                 v_star,
             } => {
-                write!(f, "CIELuv:{}/{}/{}", l_star, u_star, v_star)
+                write!(f, "CIELuv:{l_star}/{u_star}/{v_star}")
             }
             XColor::TekHvc { h, v, c } => {
-                write!(f, "TekHVC:{}/{}/{}", h, v, c)
+                write!(f, "TekHVC:{h}/{v}/{c}")
             }
         }
     }

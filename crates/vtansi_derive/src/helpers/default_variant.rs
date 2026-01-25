@@ -73,8 +73,7 @@ pub fn find_default_variant(
                 variant,
                 format!(
                     "Only one variant can be marked with #[vtansi(default)]. \
-                     First default variant was '{}'",
-                    first_ident
+                     First default variant was '{first_ident}'"
                 ),
             ));
         }

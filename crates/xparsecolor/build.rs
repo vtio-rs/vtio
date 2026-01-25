@@ -82,8 +82,7 @@ fn main() {
     // Build PHF map with byte slice keys
     let mut phf_builder = phf_codegen::Map::<&[u8]>::new();
     for (normalized, (r, g, b)) in &colors {
-        phf_builder
-            .entry(normalized.as_bytes(), &format!("({}, {}, {})", r, g, b));
+        phf_builder.entry(normalized.as_bytes(), &format!("({r}, {g}, {b})"));
     }
 
     writeln!(

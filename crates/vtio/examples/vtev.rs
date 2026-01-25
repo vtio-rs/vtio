@@ -384,8 +384,7 @@ impl EventLog {
         if let Some(ref mut file) = self.log_file {
             let _ = writeln!(
                 file,
-                "[{}] @ {}ms\n  Decoded: {}\n  Raw:     {}\n",
-                source, timestamp_ms, decoded, raw_bytes
+                "[{source}] @ {timestamp_ms}ms\n  Decoded: {decoded}\n  Raw:     {raw_bytes}\n",
             );
             let _ = file.flush();
         }
@@ -994,8 +993,7 @@ fn draw_startup_summary(
     if missing_count > 0 {
         writeln!(
             stdout,
-            "\r  ⚠ {} mode(s) did not respond (terminal may not support them)",
-            missing_count
+            "\r  ⚠ {missing_count} mode(s) did not respond (terminal may not support them)",
         )?;
     }
     writeln!(stdout, "\r")?;
@@ -1207,7 +1205,7 @@ fn draw_key_events_tab(
         stdout,
         "\r  ───────────────────────────────────────────────────────────────"
     )?;
-    writeln!(stdout, "\r    {}", last_event)?;
+    writeln!(stdout, "\r    {last_event}")?;
     writeln!(stdout, "\r")?;
 
     // Raw Bytes Display
@@ -1216,7 +1214,7 @@ fn draw_key_events_tab(
         stdout,
         "\r  ───────────────────────────────────────────────────────────────"
     )?;
-    writeln!(stdout, "\r    {}", last_bytes)?;
+    writeln!(stdout, "\r    {last_bytes}")?;
     writeln!(stdout, "\r")?;
 
     // Help
@@ -1647,12 +1645,12 @@ fn format_key_event(key_event: &KeyEvent) -> String {
 
     // Base layout key
     if let Some(base_key) = &key_event.base_layout_key {
-        details.push(format!("base_layout_key: {:?}", base_key));
+        details.push(format!("base_layout_key: {base_key:?}"));
     }
 
     // Associated text
     if let Some(text) = &key_event.text {
-        details.push(format!("text: {:?}", text));
+        details.push(format!("text: {text:?}"));
     }
 
     parts.push(format!("    Details: {}", details.join(", ")));
@@ -1661,7 +1659,7 @@ fn format_key_event(key_event: &KeyEvent) -> String {
 }
 
 fn format_bytes(bytes: &[u8]) -> String {
-    let hex: Vec<String> = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+    let hex: Vec<String> = bytes.iter().map(|b| format!("{b:02x}")).collect();
     let ascii: String = bytes
         .iter()
         .map(|&b| {
@@ -1720,33 +1718,27 @@ fn run_non_interactive(quiet: bool) -> io::Result<()> {
 
         let input = &buffer[..n];
         if !quiet {
-            eprintln!("Read {} bytes: {:02x?}", n, input);
+            eprintln!("Read {n} bytes: {input:02x?}");
         }
 
         parser.feed_with(input, &mut |event| {
             event_count += 1;
 
             if let Some(key_event) = event.downcast_ref::<KeyEvent>() {
-                println!(
-                    "KeyEvent #{}: {}",
-                    event_count,
-                    format_key_event(key_event)
-                );
+                let formatted = format_key_event(key_event);
+                println!("KeyEvent #{event_count}: {formatted}");
             } else if let Some(mouse_event) =
                 event.downcast_ref::<vtio::event::MouseEvent>()
             {
-                println!(
-                    "MouseEvent #{}: {}",
-                    event_count,
-                    format_mouse_event(mouse_event)
-                );
+                let formatted = format_mouse_event(mouse_event);
+                println!("MouseEvent #{event_count}: {formatted}");
             } else {
                 // Handle terminal mode events and other events
                 let type_name = std::any::type_name_of_val(event);
                 if type_name.contains("Mode") {
-                    println!("TerminalMode #{}: {}", event_count, type_name);
+                    println!("TerminalMode #{event_count}: {type_name}");
                 } else {
-                    println!("Event #{}: {}", event_count, type_name);
+                    println!("Event #{event_count}: {type_name}");
                 }
             }
         });
@@ -1757,34 +1749,27 @@ fn run_non_interactive(quiet: bool) -> io::Result<()> {
         event_count += 1;
 
         if let Some(key_event) = event.downcast_ref::<KeyEvent>() {
-            println!(
-                "KeyEvent #{} (from idle): {}",
-                event_count,
-                format_key_event(key_event)
-            );
+            let formatted = format_key_event(key_event);
+            println!("KeyEvent #{event_count} (from idle): {formatted}");
         } else if let Some(mouse_event) =
             event.downcast_ref::<vtio::event::MouseEvent>()
         {
-            println!(
-                "MouseEvent #{} (from idle): {}",
-                event_count,
-                format_mouse_event(mouse_event)
-            );
+            let formatted = format_mouse_event(mouse_event);
+            println!("MouseEvent #{event_count} (from idle): {formatted}");
         } else {
             let type_name = std::any::type_name_of_val(event);
             if type_name.contains("Mode") {
                 println!(
-                    "TerminalMode #{} (from idle): {}",
-                    event_count, type_name
+                    "TerminalMode #{event_count} (from idle): {type_name}"
                 );
             } else {
-                println!("Event #{} (from idle): {}", event_count, type_name);
+                println!("Event #{event_count} (from idle): {type_name}");
             }
         }
     });
 
     if !quiet {
-        eprintln!("Processed {} total events", event_count);
+        eprintln!("Processed {event_count} total events");
     }
     Ok(())
 }
@@ -2155,15 +2140,12 @@ fn main() -> io::Result<()> {
                 match key_event.code {
                     KeyCode::F(1) => {
                         current_tab = Tab::KeyEvents;
-                        should_redraw = true;
                     }
                     KeyCode::F(2) => {
                         current_tab = Tab::TerminalState;
-                        should_redraw = true;
                     }
                     KeyCode::F(3) => {
                         current_tab = Tab::EventLog;
-                        should_redraw = true;
                     }
                     // Handle keyboard enhancement flag toggling (only on Key Events tab)
                     // Handle keyboard/mouse mode toggles
@@ -2175,7 +2157,6 @@ fn main() -> io::Result<()> {
                         if should_toggle {
                             keyboard_state.toggle_all();
                             flags_changed = true;
-                            should_redraw = true;
                         }
                     }
                     KeyCode::Char('1') if current_tab == Tab::KeyEvents => {
@@ -2184,7 +2165,6 @@ fn main() -> io::Result<()> {
                         if should_toggle {
                             keyboard_state.toggle_flag(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES);
                             flags_changed = true;
-                            should_redraw = true;
                         }
                     }
                     KeyCode::Char('2') if current_tab == Tab::KeyEvents => {
@@ -2193,7 +2173,6 @@ fn main() -> io::Result<()> {
                         if should_toggle {
                             keyboard_state.toggle_flag(KeyboardEnhancementFlags::REPORT_EVENT_TYPES);
                             flags_changed = true;
-                            should_redraw = true;
                         }
                     }
                     KeyCode::Char('3') if current_tab == Tab::KeyEvents => {
@@ -2202,7 +2181,6 @@ fn main() -> io::Result<()> {
                         if should_toggle {
                             keyboard_state.toggle_flag(KeyboardEnhancementFlags::REPORT_ALTERNATE_KEYS);
                             flags_changed = true;
-                            should_redraw = true;
                         }
                     }
                     KeyCode::Char('4') if current_tab == Tab::KeyEvents => {
@@ -2211,7 +2189,6 @@ fn main() -> io::Result<()> {
                         if should_toggle {
                             keyboard_state.toggle_flag(KeyboardEnhancementFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES);
                             flags_changed = true;
-                            should_redraw = true;
                         }
                     }
                     KeyCode::Char('5') if current_tab == Tab::KeyEvents => {
@@ -2220,7 +2197,6 @@ fn main() -> io::Result<()> {
                         if should_toggle {
                             keyboard_state.toggle_flag(KeyboardEnhancementFlags::REPORT_ASSOCIATED_TEXT);
                             flags_changed = true;
-                            should_redraw = true;
                         }
                     }
                     KeyCode::Char('6') if current_tab == Tab::KeyEvents => {
@@ -2228,7 +2204,6 @@ fn main() -> io::Result<()> {
                             || key_event.is_release();
                         if should_toggle {
                             mouse_state.toggle_flag(MouseModeFlags::DOWN_UP_TRACKING);
-                            should_redraw = true;
                         }
                     }
                     KeyCode::Char('7') if current_tab == Tab::KeyEvents => {
@@ -2236,7 +2211,6 @@ fn main() -> io::Result<()> {
                             || key_event.is_release();
                         if should_toggle {
                             mouse_state.toggle_flag(MouseModeFlags::CLICK_DRAG_TRACKING);
-                            should_redraw = true;
                         }
                     }
                     KeyCode::Char('8') if current_tab == Tab::KeyEvents => {
@@ -2244,7 +2218,6 @@ fn main() -> io::Result<()> {
                             || key_event.is_release();
                         if should_toggle {
                             mouse_state.toggle_flag(MouseModeFlags::ANY_EVENT_TRACKING);
-                            should_redraw = true;
                         }
                     }
                     KeyCode::Char('9') if current_tab == Tab::KeyEvents => {
@@ -2252,7 +2225,6 @@ fn main() -> io::Result<()> {
                             || key_event.is_release();
                         if should_toggle {
                             mouse_state.toggle_flag(MouseModeFlags::SGR_FORMAT);
-                            should_redraw = true;
                         }
                     }
                     KeyCode::Char('m') if current_tab == Tab::KeyEvents => {
@@ -2261,7 +2233,6 @@ fn main() -> io::Result<()> {
                         if should_toggle {
                             mouse_state.toggle_all();
                             tracing::info!("Toggling all mouse modes");
-                            should_redraw = true;
                         }
                     }
                     _ => {}
@@ -2439,15 +2410,15 @@ fn format_mouse_event(mouse_event: &vtio::event::MouseEvent) -> String {
     // Event kind with button info
     match &mouse_event.kind {
         MouseEventKind::Down(button) => {
-            details.push(format!("button: {:?}", button));
+            details.push(format!("button: {button:?}"));
             details.push("action: Down".to_string());
         }
         MouseEventKind::Up(button) => {
-            details.push(format!("button: {:?}", button));
+            details.push(format!("button: {button:?}"));
             details.push("action: Up".to_string());
         }
         MouseEventKind::Drag(button) => {
-            details.push(format!("button: {:?}", button));
+            details.push(format!("button: {button:?}"));
             details.push("action: Drag".to_string());
         }
         MouseEventKind::Moved => {

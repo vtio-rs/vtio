@@ -72,7 +72,7 @@ pub fn run_tests<'a>(config: TestConfig<'a>) {
         }
 
         let decoded = decode_string(line);
-        println!("  running {:?} ...", test_name);
+        println!("  running {test_name:?} ...");
         let test_name_clone = test_name.clone();
         let line_clone = line.to_string();
         let Ok(test_output) = std::panic::catch_unwind(move || {
@@ -80,7 +80,7 @@ pub fn run_tests<'a>(config: TestConfig<'a>) {
             test(&mut output, &test_name_clone, &line_clone, &decoded);
             output
         }) else {
-            eprintln!("  test {:?} panicked", test_name);
+            eprintln!("  test {test_name:?} panicked");
             failures += 1;
             continue;
         };
@@ -90,7 +90,7 @@ pub fn run_tests<'a>(config: TestConfig<'a>) {
     println!();
 
     if failures > 0 {
-        eprintln!("{} tests failed", failures);
+        eprintln!("{failures} tests failed");
         std::process::exit(1);
     }
 
@@ -124,7 +124,7 @@ fn test(output: &mut String, test_name: &str, line: &str, decoded: &[u8]) {
         );
     }
 
-    output.push_str(&format!("## {test_name}\n```\n{}\n```\n\n", line));
+    output.push_str(&format!("## {test_name}\n```\n{line}\n```\n\n"));
     output.push_str("```\n");
     output.push_str(&result);
     output.push_str("```\n");

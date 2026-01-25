@@ -311,9 +311,8 @@ fn extract_fields_info<'a>(
             return Err(syn::Error::new_spanned(
                 field,
                 format!(
-                    "non-optional field '{:?}' at position {} cannot \
-                     appear after optional field at position {}",
-                    member, idx, first_optional_idx
+                    "non-optional field '{member:?}' at position {idx} cannot \
+                     appear after optional field at position {first_optional_idx}"
                 ),
             ));
         }

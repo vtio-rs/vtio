@@ -185,7 +185,7 @@ pub fn build_trie_from_static_items<I, V, KF, VF>(
     mut value_fn: VF,
 ) -> ByteTrie<V>
 where
-    KF: FnMut(&'static I) -> &[u8],
+    KF: FnMut(&'static I) -> &'static [u8],
     VF: FnMut(&'static I) -> V,
 {
     let mut builder: ByteTrieBuilder<V> = ByteTrieBuilder::new();

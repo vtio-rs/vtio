@@ -34,7 +34,7 @@ pub fn rustfmt_tokens(tokens: &TokenStream) -> String {
     let status = rustfmt_child.wait().expect("rustfmt failed to start");
 
     if !status.success() {
-        panic!("rustfmt exited with {}", status);
+        panic!("rustfmt exited with {status}");
     }
 
     output

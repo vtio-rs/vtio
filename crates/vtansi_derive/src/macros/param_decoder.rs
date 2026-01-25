@@ -57,6 +57,7 @@ impl ParamSource {
 ///
 /// A TokenStream containing the body suitable for implementing
 /// `try_into_ansi()`.
+#[allow(clippy::too_many_arguments)]
 pub fn generate_param_decoding(
     typename: &syn::Type,
     params: &StructParamInfo,
@@ -248,7 +249,7 @@ fn generate_map_decoding(
         let name = &field.ident();
         let source = field_source_map
             .get(&field.member)
-            .unwrap_or_else(|| panic!("source field for {}", name));
+            .unwrap_or_else(|| panic!("source field for {name}"));
         let source_str = match source {
             syn::Member::Named(ident) => ident.to_string(),
             syn::Member::Unnamed(_) => panic!("unexpected unnamed field source"),
@@ -343,9 +344,9 @@ fn generate_vector_decoding(
     // Use a unique iterator name based on the source to avoid shadowing
     // when processing multiple param sources (e.g., static_params vs regular params)
     let source_ident = &source.ident;
-    let iter_name = format!("__vtansi_{}_iter", source_ident);
-    let exhausted_name = format!("__vtansi_{}_exhausted", source_ident);
-    let prev_name = format!("__vtansi_{}_prev", source_ident);
+    let iter_name = format!("__vtansi_{source_ident}_iter");
+    let exhausted_name = format!("__vtansi_{source_ident}_exhausted");
+    let prev_name = format!("__vtansi_{source_ident}_prev");
 
     let param_iterator =
         syn::Ident::new(&iter_name, proc_macro2::Span::mixed_site());

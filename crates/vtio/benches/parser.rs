@@ -463,8 +463,7 @@ impl Options {
                         }
                         None => {
                             return Err(format!(
-                                "invalid size '{}'. Valid options: small, medium, large",
-                                value
+                                "invalid size '{value}'. Valid options: small, medium, large"
                             ));
                         }
                     }
@@ -477,8 +476,7 @@ impl Options {
                         }
                         None => {
                             return Err(format!(
-                                "invalid kind '{}'. Valid options: ascii, mixed, unicode, control, ansi, csi, mouse, pathological",
-                                value
+                                "invalid kind '{value}'. Valid options: ascii, mixed, unicode, control, ansi, csi, mouse, pathological"
                             ));
                         }
                     }
@@ -491,8 +489,7 @@ impl Options {
                         }
                         None => {
                             return Err(format!(
-                                "invalid parser '{}'. Valid options: vtio, termwiz, vte, termion, vtparse, ansi-parser",
-                                value
+                                "invalid parser '{value}'. Valid options: vtio, termwiz, vte, termion, vtparse, ansi-parser"
                             ));
                         }
                     }
@@ -859,7 +856,7 @@ fn main() {
     let options = match Options::parse() {
         Ok(opts) => opts,
         Err(e) => {
-            eprintln!("Error: {}", e);
+            eprintln!("Error: {e}");
             eprintln!("Run with --help for usage information.");
             std::process::exit(1);
         }
@@ -1015,7 +1012,7 @@ fn main() {
                             other_tp
                         ));
                         if ratio >= 1.0 {
-                            parts.push(format!("(vtio {:.1}x faster)", ratio));
+                            parts.push(format!("(vtio {ratio:.1}x faster)"));
                         } else {
                             parts.push(format!(
                                 "({} {:.1}x faster)",

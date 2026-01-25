@@ -799,11 +799,11 @@ mod tests {
                 events.push("RequestTerminalNameAndVersion");
             }
             if let Some(u) = event.downcast_ref::<UnrecognizedOutputEvent>() {
-                println!("Unrecognized event: {:?}", u);
-                unrecognized.push(format!("{:?}", u));
+                println!("Unrecognized event: {u:?}");
+                unrecognized.push(format!("{u:?}"));
             }
         });
-        println!("Unrecognized events: {:?}", unrecognized);
+        println!("Unrecognized events: {unrecognized:?}");
         assert_eq!(
             events.len(),
             1,

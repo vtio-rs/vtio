@@ -597,7 +597,7 @@ fn generate_esc_encode_dynamic_impl(
     let len_sum_vars: Vec<_> = (0..len_sum_terms.len())
         .map(|i| {
             syn::Ident::new(
-                &format!("__len_{}", i),
+                &format!("__len_{i}"),
                 proc_macro2::Span::mixed_site(),
             )
         })

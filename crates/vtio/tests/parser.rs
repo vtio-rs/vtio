@@ -63,7 +63,7 @@ pub fn main() {
     };
 
     if suites_to_run.is_empty() {
-        eprintln!("No test suites match filter: {}", filter);
+        eprintln!("No test suites match filter: {filter}");
         std::process::exit(1);
     }
 

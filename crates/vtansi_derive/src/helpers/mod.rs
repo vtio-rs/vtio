@@ -49,7 +49,7 @@ pub fn non_struct_error() -> syn::Error {
 pub fn occurrence_error<T: ToTokens>(fst: T, snd: T, attr: &str) -> syn::Error {
     let mut e = syn::Error::new_spanned(
         snd,
-        format!("Found multiple occurrences of vtansi({})", attr),
+        format!("Found multiple occurrences of vtansi({attr})"),
     );
     e.combine(syn::Error::new_spanned(fst, "first one here"));
     e
@@ -66,8 +66,7 @@ pub fn error_required_attr(
     syn::Error::new(
         span,
         format!(
-            "{} attribute is required; add {} = {}",
-            attr_name, attr_name, example
+            "{attr_name} attribute is required; add {attr_name} = {example}"
         ),
     )
 }
@@ -155,10 +154,7 @@ fn pick_alpha_lifetime(
     loop {
         let candidate = alpha_name_from_index(i);
         if !existing.contains(&candidate) && !reserved(&candidate) {
-            return Lifetime::new(
-                &format!("'{}", candidate),
-                Span::call_site(),
-            );
+            return Lifetime::new(&format!("'{candidate}"), Span::call_site());
         }
         i += 1;
     }

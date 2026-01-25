@@ -998,7 +998,7 @@ impl HasTypeProperties for DeriveInput {
                 Err(e) => {
                     return Err(syn::Error::new_spanned(
                         value_lit,
-                        format!("invalid code value: {}", e),
+                        format!("invalid code value: {e}"),
                     ));
                 }
             }
@@ -1053,8 +1053,7 @@ fn duplicate_intro_error(
     syn::Error::new(
         proc_macro2::Span::call_site(),
         format!(
-            "found multiple occurrences of control function kind ({:?} and {:?})",
-            fst, snd
+            "found multiple occurrences of control function kind ({fst:?} and {snd:?})"
         ),
     )
 }
