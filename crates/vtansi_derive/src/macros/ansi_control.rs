@@ -228,6 +228,15 @@ fn validate_osc_sequence(ast: &DeriveInput) -> syn::Result<()> {
                          Remove the locate attribute.",
                     ));
                 }
+                FieldLocation::StaticParams => {
+                    return Err(syn::Error::new_spanned(
+                        field,
+                        "OSC sequences do not support #[vtansi(locate = \"static_params\")].\n\
+                         \n\
+                         OSC sequences do not have static params in the trie.\n\
+                         Remove the locate attribute.",
+                    ));
+                }
             }
         }
     }
@@ -406,6 +415,7 @@ fn generate_esc_decode_impl(
         params,
         &props,
         &ParamSource::new(&params_ident, ParamSourceFormat::Flat),
+        None, // static_params_source - ESC sequences don't have static params
         None,
         None,
         props.into.as_ref(),
@@ -652,11 +662,17 @@ fn generate_esc_encode_dynamic_impl(
 /// Create the distributed slice entry that registers this control function
 /// with the parser, along with a handler function that will be called when
 /// the sequence is recognized.
+///
+/// This generates ONE handler function and multiple registry entries for each
+/// combination of (params_alternative, final_byte, param_marker, has_data_params).
+/// All registry entries point to the same handler.
 pub fn generate_registry_entries(
     ast: &DeriveInput,
     props: &ControlProperties,
     params: &StructParamInfo,
 ) -> syn::Result<TokenStream> {
+    use crate::helpers::metadata::AnsiStrings;
+
     // Skip registry registration for alias types
     if props.alias_of.is_some() {
         return Ok(quote! {});
@@ -665,12 +681,19 @@ pub fn generate_registry_entries(
     let struct_name = &ast.ident;
     let struct_name_str = struct_name.to_string();
 
-    let handler_name = &format!("{}_handler", struct_name_str.to_lowercase());
+    let handler_name_str =
+        format!("{}_handler", struct_name_str.to_lowercase());
+    let handler_name_ident =
+        syn::Ident::new(&handler_name_str, struct_name.span());
     let cb = syn::Ident::new("__vtansi_cb", proc_macro2::Span::mixed_site());
     let event_data =
         syn::Ident::new("__vtansi_event_data", proc_macro2::Span::mixed_site());
     let param_source =
         syn::Ident::new("__vtansi_params", proc_macro2::Span::mixed_site());
+    let static_param_source = syn::Ident::new(
+        "__vtansi_static_params",
+        proc_macro2::Span::mixed_site(),
+    );
     let data_param_source =
         syn::Ident::new("__vtansi_data", proc_macro2::Span::mixed_site());
     let final_byte_source =
@@ -678,11 +701,23 @@ pub fn generate_registry_entries(
     let event =
         syn::Ident::new("__vtansi_event", proc_macro2::Span::mixed_site());
     let stype: syn::Type = syn::parse_quote!(#struct_name);
+
+    // Only create static_params_source if there are fields that need it
+    let static_params_source = if params.params.has_static_params {
+        Some(ParamSource::new(
+            &static_param_source,
+            ParamSourceFormat::Split,
+        ))
+    } else {
+        None
+    };
+
     let (param_decoding, constructor) = generate_param_decoding(
         &stype,
         params,
         props,
         &ParamSource::new(&param_source, ParamSourceFormat::Split),
+        static_params_source.as_ref(),
         Some(&ParamSource::new(
             &data_param_source,
             ParamSourceFormat::Flat,
@@ -694,6 +729,7 @@ pub fn generate_registry_entries(
         props.into.as_ref(),
     )?;
     let kind = props.kind.as_lib_enum();
+    // Use the first params alternative for the prefix (used in registry entry metadata)
     let prefix = props.get_static_prefix();
     let intro_bytes = props.kind.introducer();
     let prefix_bytes = syn::LitByteStr::new(
@@ -702,6 +738,7 @@ pub fn generate_registry_entries(
     );
     let direction = props.direction.as_ref().to_ascii_uppercase();
     let registry = format!("ANSI_CONTROL_{direction}_FUNCTION_REGISTRY");
+    let registry_list = syn::Ident::new(&registry, struct_name.span());
 
     // Determine if this sequence has required params (for trie key disambiguation)
     // For CSI sequences with all-optional params, we need to emit two entries:
@@ -758,58 +795,66 @@ pub fn generate_registry_entries(
         && props.kind == ControlFunctionKind::Osc
         && !props.data.is_empty();
 
-    let emit_entry = |suffix: Option<usize>,
+    // Generate static params extraction if needed
+    let static_params_extraction = if params.params.has_static_params {
+        quote! {
+            let mut #static_param_source = #event_data.iter_static_params().unwrap_or_default();
+        }
+    } else {
+        quote! {}
+    };
+
+    // Generate ONE handler function that all registry entries will share.
+    let handler_fn = quote! {
+        #[automatically_derived]
+        #[doc(hidden)]
+        fn #handler_name_ident<'a>(
+            #event_data: &'a ::vtansi::registry::AnsiEventData<'a>,
+            #cb: &mut ::vtansi::registry::AnsiEmitFn,
+        ) -> ::core::result::Result<(), ::vtansi::parse::ParseError> {
+            let mut #param_source = #event_data.iter_params().unwrap_or_default();
+            #static_params_extraction
+            let #data_param_source = #event_data.get_data().unwrap_or_default();
+            let #final_byte_source = #event_data.get_finalbyte().unwrap_or_default();
+            #param_decoding
+            let #event = #constructor;
+            #cb(&#event);
+            Ok(())
+        }
+    };
+
+    // Closure to emit a registry entry (without handler - all share the same handler)
+    let emit_entry = |suffix: usize,
                       final_byte: Option<u8>,
                       param_marker: u8,
-                      has_data_params: bool|
-     -> syn::Result<proc_macro2::TokenStream> {
-        // Generate trie key with the specific final byte and param marker
+                      has_data_params: bool,
+                      static_params: &AnsiStrings|
+     -> proc_macro2::TokenStream {
+        // Generate trie key with the specific final byte, param marker, and params alternative
         let key_bytes = syn::LitByteStr::new(
-            &props.get_key(final_byte, param_marker, has_data_params),
+            &props.get_key_with_params(
+                final_byte,
+                param_marker,
+                has_data_params,
+                static_params,
+            ),
             proc_macro2::Span::mixed_site(),
         );
 
-        let (registry_name, handler_name) = if let Some(suffix) = suffix {
-            (
-                format!(
-                    "__{}_REGISTRY_ENTRY_{}",
-                    struct_name_str.to_uppercase(),
-                    suffix,
-                ),
-                format!("{}_{}", handler_name, suffix),
-            )
-        } else {
-            (
-                format!("__{}_REGISTRY_ENTRY", struct_name_str.to_uppercase()),
-                handler_name.to_string(),
-            )
-        };
+        let registry_name = format!(
+            "__{}_REGISTRY_ENTRY_{}",
+            struct_name_str.to_uppercase(),
+            suffix,
+        );
 
-        let handler_name = syn::Ident::new(&handler_name, struct_name.span());
         let registry_name = syn::Ident::new(&registry_name, struct_name.span());
-        let registry_list = syn::Ident::new(&registry, struct_name.span());
-        let final_byte = if let Some(final_byte) = final_byte {
+        let final_byte_token = if let Some(final_byte) = final_byte {
             quote! { ::core::option::Option::Some(#final_byte) }
         } else {
             quote! { ::core::option::Option::None }
         };
 
-        let code = quote! {
-            #[automatically_derived]
-            #[doc(hidden)]
-            fn #handler_name<'a>(
-                #event_data: &'a ::vtansi::registry::AnsiEventData<'a>,
-                #cb: &mut ::vtansi::registry::AnsiEmitFn,
-            ) -> ::core::result::Result<(), ::vtansi::parse::ParseError> {
-                let mut #param_source = #event_data.iter_params().unwrap_or_default();
-                let #data_param_source = #event_data.get_data().unwrap_or_default();
-                let #final_byte_source = #event_data.get_finalbyte().unwrap_or_default();
-                #param_decoding
-                let #event = #constructor;
-                #cb(&#event);
-                Ok(())
-            }
-
+        quote! {
             #[doc(hidden)]
             #[::vtansi::__private::linkme::distributed_slice(::vtansi::registry::#registry_list)]
             static #registry_name: ::vtansi::registry::AnsiControlFunctionMatchEntry =
@@ -818,62 +863,46 @@ pub fn generate_registry_entries(
                     key: #key_bytes,
                     kind: #kind,
                     prefix: #prefix_bytes,
-                    final_byte: #final_byte,
-                    handler: #handler_name,
+                    final_byte: #final_byte_token,
+                    handler: #handler_name_ident,
                 };
-        };
-
-        Ok(code)
+        }
     };
 
-    // Build list of (suffix, final_byte, param_marker, has_data_params) tuples for entries to emit
-    //
-    // For disambiguated sequences, we always use the computed param_marker (2 + total_params).
-    // For normal sequences:
-    // - If all params are optional, emit two entries (param_marker=0 and param_marker=1)
-    // - Otherwise, emit one entry with the computed param_marker
-    // For OSC sequences with all-optional data params:
-    // - Emit two entries: one with has_data_params=false, one with has_data_params=true
+    // Build list of (final_byte, param_marker, has_data_params) tuples for base entries
+    // These will be combined with params alternatives to produce the full entry list
     let default_has_data_params = !params.data_params.is_empty();
-    let entry_specs: Vec<(Option<usize>, Option<u8>, u8, bool)> = match props
-        .final_bytes
-        .len()
+    let base_specs: Vec<(Option<u8>, u8, bool)> = match props.final_bytes.len()
     {
         0 => {
             if props.disambiguate {
-                vec![(None, None, param_marker, default_has_data_params)]
+                vec![(None, param_marker, default_has_data_params)]
             } else if has_all_optional_params {
                 // Emit two entries: one with param_marker=0, one with param_marker=1
                 vec![
-                    (None, None, 0, default_has_data_params),
-                    (Some(1), None, 1, default_has_data_params),
+                    (None, 0, default_has_data_params),
+                    (None, 1, default_has_data_params),
                 ]
             } else if has_all_optional_data_params {
                 // Emit two entries: one without trailing delimiter, one with
-                vec![
-                    (None, None, param_marker, false),
-                    (Some(1), None, param_marker, true),
-                ]
+                vec![(None, param_marker, false), (None, param_marker, true)]
             } else {
-                vec![(None, None, param_marker, default_has_data_params)]
+                vec![(None, param_marker, default_has_data_params)]
             }
         }
         1 => {
             let fb = Some(*props.final_bytes[0]);
             if props.disambiguate {
-                vec![(None, fb, param_marker, default_has_data_params)]
+                vec![(fb, param_marker, default_has_data_params)]
             } else if has_all_optional_params {
                 vec![
-                    (None, fb, 0, default_has_data_params),
-                    (Some(1), fb, 1, default_has_data_params),
+                    (fb, 0, default_has_data_params),
+                    (fb, 1, default_has_data_params),
                 ]
             } else if has_all_optional_data_params {
-                vec![
-                    (None, fb, param_marker, false),
-                    (Some(1), fb, param_marker, true),
-                ]
+                vec![(fb, param_marker, false), (fb, param_marker, true)]
             } else {
-                vec![(None, fb, param_marker, default_has_data_params)]
+                vec![(fb, param_marker, default_has_data_params)]
             }
         }
         _ => {
@@ -881,15 +910,7 @@ pub fn generate_registry_entries(
                 props
                     .final_bytes
                     .iter()
-                    .enumerate()
-                    .map(|(i, b)| {
-                        (
-                            Some(i),
-                            Some(**b),
-                            param_marker,
-                            default_has_data_params,
-                        )
-                    })
+                    .map(|b| (Some(**b), param_marker, default_has_data_params))
                     .collect()
             } else if has_all_optional_params {
                 // For multiple final bytes with all-optional params,
@@ -897,12 +918,11 @@ pub fn generate_registry_entries(
                 props
                     .final_bytes
                     .iter()
-                    .enumerate()
-                    .flat_map(|(i, b)| {
+                    .flat_map(|b| {
                         let fb = Some(**b);
                         vec![
-                            (Some(i * 2), fb, 0, default_has_data_params),
-                            (Some(i * 2 + 1), fb, 1, default_has_data_params),
+                            (fb, 0, default_has_data_params),
+                            (fb, 1, default_has_data_params),
                         ]
                     })
                     .collect()
@@ -910,12 +930,11 @@ pub fn generate_registry_entries(
                 props
                     .final_bytes
                     .iter()
-                    .enumerate()
-                    .flat_map(|(i, b)| {
+                    .flat_map(|b| {
                         let fb = Some(**b);
                         vec![
-                            (Some(i * 2), fb, param_marker, false),
-                            (Some(i * 2 + 1), fb, param_marker, true),
+                            (fb, param_marker, false),
+                            (fb, param_marker, true),
                         ]
                     })
                     .collect()
@@ -923,28 +942,40 @@ pub fn generate_registry_entries(
                 props
                     .final_bytes
                     .iter()
-                    .enumerate()
-                    .map(|(i, b)| {
-                        (
-                            Some(i),
-                            Some(**b),
-                            param_marker,
-                            default_has_data_params,
-                        )
-                    })
+                    .map(|b| (Some(**b), param_marker, default_has_data_params))
                     .collect()
             }
         }
     };
 
-    let entries: Vec<_> = entry_specs
-        .into_iter()
-        .map(|(suffix, fb, marker, has_data_params)| {
-            emit_entry(suffix, fb, marker, has_data_params)
-        })
-        .collect::<syn::Result<_>>()?;
+    // Get params alternatives, defaulting to a single empty alternative if none specified
+    let params_alts: Vec<&AnsiStrings> = if props.params.is_empty() {
+        // Create a reference to an empty AnsiStrings for the single "no static params" case
+        vec![props.params.first()]
+    } else {
+        props.params.iter().collect()
+    };
+
+    // Generate registry entries for each combination of (params_alt, base_spec)
+    // Build the full list of combinations first, then emit entries with proper indices
+    let mut entries: Vec<proc_macro2::TokenStream> = Vec::new();
+    for (params_idx, static_params) in params_alts.iter().enumerate() {
+        for (spec_idx, (fb, marker, has_data_params)) in
+            base_specs.iter().enumerate()
+        {
+            let entry_idx = params_idx * base_specs.len() + spec_idx;
+            entries.push(emit_entry(
+                entry_idx,
+                *fb,
+                *marker,
+                *has_data_params,
+                static_params,
+            ));
+        }
+    }
 
     Ok(quote! {
+        #handler_fn
         #(#entries)*
     })
 }

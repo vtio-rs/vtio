@@ -496,7 +496,8 @@
 //! - `intermediate = ' '` - Intermediate bytes (max 2 bytes). Can be a single
 //!   character or string.
 //! - `params = ["6", "1"]` - Static parameter values for unit structs (const
-//!   sequences).
+//!   sequences). Can use `|` operator for alternatives that map to the same
+//!   handler (e.g., `params = ['12'] | ['13']`).
 //! - `data = "$q"` - Static data string for DCS, OSC, and SS3 sequences.
 //!   For SS3, this is the data following `ESC O`.
 //! - `number = "133"` - OSC numeric parameter (Ps in ESC ] Ps ; Pt ST).

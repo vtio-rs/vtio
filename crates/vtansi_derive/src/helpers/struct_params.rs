@@ -52,6 +52,13 @@ pub struct FieldInfo {
     /// When true, the field delegates parameter iterator parsing to its
     /// `try_from_ansi_iter` method instead of consuming a single parameter.
     pub is_flatten: bool,
+
+    /// Whether this field captures from static params position.
+    ///
+    /// When true, the field parses from position 0 of all_params (including
+    /// static params consumed by trie matching), rather than from the
+    /// remaining params after static param consumption.
+    pub is_static_params: bool,
 }
 
 impl FieldInfo {
@@ -106,6 +113,9 @@ pub struct Params {
 
     /// Whether any fields are flattened.
     pub has_flatten: bool,
+
+    /// Whether any fields capture from static params.
+    pub has_static_params: bool,
 }
 
 impl Params {
@@ -243,9 +253,18 @@ fn extract_fields_info<'a>(
         let field_location = field_props.location.unwrap_or(default_location);
 
         // Filter based on field location
-        if for_location != field_location {
+        // StaticParams fields are treated as Params for extraction purposes
+        let effective_location =
+            if field_location == FieldLocation::StaticParams {
+                FieldLocation::Params
+            } else {
+                field_location
+            };
+        if for_location != effective_location {
             continue;
         }
+
+        let is_static_params = field_location == FieldLocation::StaticParams;
 
         if field_location == FieldLocation::Final {
             if seen_final_byte_location {
@@ -278,6 +297,7 @@ fn extract_fields_info<'a>(
             index,
             mux_index: None, // For now
             is_flatten: field_props.flatten.is_some(),
+            is_static_params,
         };
 
         field_map.insert(member.clone(), (index, field_has_mux));
@@ -343,11 +363,14 @@ fn extract_fields_info<'a>(
         }
     }
 
+    let has_static_params = field_infos.iter().any(|f| f.is_static_params);
+
     Ok(Params {
         fields: field_infos,
         required_count,
         has_mux,
         has_flatten,
+        has_static_params,
         total_count: index,
     })
 }

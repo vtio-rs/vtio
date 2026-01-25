@@ -182,6 +182,13 @@ pub struct CsiArgs {
     /// struct ReportCursorPosition;
     /// // Encodes as: ESC [ 6 n
     /// ```
+    ///
+    /// Alternative parameters (using `|` operator):
+    /// ```ignore
+    /// #[vtansi(csi, params = ["12"] | ["13"], finalbyte = 'n')]
+    /// struct DeviceStatusReport;
+    /// // Matches both: ESC [ 12 n  and  ESC [ 13 n
+    /// ```
     pub params: &'static [&'static str],
 
     /// Intermediate bytes in the sequence.
@@ -588,6 +595,17 @@ pub const private: () = ();
 /// ```ignore
 /// #[vtansi(csi, params = ["1", "2"], finalbyte = 'm')]
 /// ```
+///
+/// Alternative parameters (using `|` operator):
+/// ```ignore
+/// #[vtansi(csi, params = ["12"] | ["13"], finalbyte = 'n')]
+/// struct DeviceStatusReport;
+/// // Matches both: ESC [ 12 n  and  ESC [ 13 n
+/// // Both sequences map to the same handler
+/// ```
+///
+/// This is useful for sequences where multiple static parameter values
+/// should be parsed into the same struct type.
 pub const params: () = ();
 
 /// Intermediate bytes in control sequences.

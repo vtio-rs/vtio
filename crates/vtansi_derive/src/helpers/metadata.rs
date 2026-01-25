@@ -81,6 +81,9 @@ pub use kw::ControlKeyword;
 pub enum FieldLocation {
     /// Parameter section of the sequence
     Params,
+    /// Static params section - field captures from position 0 of all_params
+    /// (including the static params consumed by trie matching)
+    StaticParams,
     /// Data section of the sequence (e.g in DCS)
     Data,
     /// Final byte (e.g in ESC G0/G1 designators)
@@ -92,11 +95,12 @@ impl Parse for FieldLocation {
         let s: LitStr = input.parse()?;
         match s.value().as_str() {
             "params" => Ok(FieldLocation::Params),
+            "static_params" => Ok(FieldLocation::StaticParams),
             "data" => Ok(FieldLocation::Data),
             "final" => Ok(FieldLocation::Final),
             _ => Err(syn::Error::new_spanned(
                 s,
-                "location must be either \"params\" or \"data\" or \"final\"",
+                "location must be \"params\", \"static_params\", \"data\", or \"final\"",
             )),
         }
     }
@@ -450,6 +454,90 @@ impl Parse for AnsiStrings {
     }
 }
 
+/// A collection of alternative `AnsiStrings` separated by `|`.
+///
+/// This represents alternative static param sets like `params = ['12'] | ['13']`.
+/// Each alternative is an `AnsiStrings` (a bracketed list of strings).
+#[derive(Debug, Default, Clone)]
+pub struct AnsiStringsAlts(Vec<AnsiStrings>);
+
+impl AnsiStringsAlts {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    /// Returns true if there are no alternatives (empty).
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Returns the number of alternatives.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Returns the first alternative, or an empty `AnsiStrings` if none.
+    pub fn first(&self) -> &AnsiStrings {
+        static EMPTY: std::sync::LazyLock<AnsiStrings> =
+            std::sync::LazyLock::new(AnsiStrings::new);
+        self.0.first().unwrap_or(&EMPTY)
+    }
+
+    /// Iterate over all alternatives.
+    pub fn iter(&self) -> impl Iterator<Item = &AnsiStrings> {
+        self.0.iter()
+    }
+}
+
+impl std::ops::Deref for AnsiStringsAlts {
+    type Target = Vec<AnsiStrings>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for AnsiStringsAlts {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a AnsiStringsAlts {
+    type Item = &'a AnsiStrings;
+    type IntoIter = std::slice::Iter<'a, AnsiStrings>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut AnsiStringsAlts {
+    type Item = &'a mut AnsiStrings;
+    type IntoIter = std::slice::IterMut<'a, AnsiStrings>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter_mut()
+    }
+}
+
+impl IntoIterator for AnsiStringsAlts {
+    type Item = AnsiStrings;
+    type IntoIter = std::vec::IntoIter<AnsiStrings>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl Parse for AnsiStringsAlts {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let elems: Punctuated<AnsiStrings, Token![|]> =
+            Punctuated::parse_separated_nonempty(input)?;
+        Ok(Self(elems.into_iter().collect::<Vec<AnsiStrings>>()))
+    }
+}
+
 /// Metadata that can be attached to types (enums or structs).
 ///
 /// This enum represents all possible metadata items that can appear in a
@@ -473,7 +561,11 @@ pub enum TypeMeta {
     /// `#[vtansi(private = '?')]` - private marker byte.
     Private { kw: kw::private, value: AnsiChar },
     /// `#[vtansi(params = ["6", "1"])]` - constant parameter sequences.
-    Params { kw: kw::params, value: AnsiStrings },
+    /// Supports alternatives: `params = ['12'] | ['13']`.
+    Params {
+        kw: kw::params,
+        value: AnsiStringsAlts,
+    },
     /// `#[vtansi(intermediate = ' ')]` - intermediate byte sequence.
     Intermediate {
         kw: kw::intermediate,

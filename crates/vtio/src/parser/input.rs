@@ -481,9 +481,12 @@ where
             answer @ (Answer::Match(handler)
             | Answer::PrefixAndMatch(handler)) => {
                 consumed_params += 1;
+                let static_params = &all_params[..consumed_params];
                 let remaining_params = &all_params[consumed_params..];
                 if handler(
-                    &data.with_params(remaining_params),
+                    &data
+                        .with_params(remaining_params)
+                        .with_static_params(static_params),
                     &mut intercept_cb,
                 )
                 .is_ok()
@@ -500,11 +503,17 @@ where
         }
     }
 
+    let static_params = &all_params[..consumed_params];
     let remaining_params = &all_params[consumed_params..];
 
     if let Some(handler) = param_prefix_handler
-        && handler(&data.with_params(remaining_params), &mut intercept_cb)
-            .is_ok()
+        && handler(
+            &data
+                .with_params(remaining_params)
+                .with_static_params(static_params),
+            &mut intercept_cb,
+        )
+        .is_ok()
     {
         return capture;
     }
@@ -1676,5 +1685,168 @@ mod tests {
 
         // Only the second (non-cancelled) sequence should produce a response
         assert_eq!(response_count, 1);
+    }
+
+    #[test]
+    fn test_printer_status_report() {
+        use crate::event::dsr::{PrinterStatus, PrinterStatusReport};
+
+        let mut parser = TerminalInputParser::new();
+
+        // Test CSI ? 10 n (Printer Ready)
+        let mut status: Option<PrinterStatus> = None;
+        parser.feed_with(b"\x1b[?10n", &mut |event| {
+            if let Some(report) = event.downcast_ref::<PrinterStatusReport>() {
+                status = Some(report.status);
+            }
+        });
+        assert_eq!(status, Some(PrinterStatus::Ready));
+
+        // Test CSI ? 11 n (Printer Not Ready)
+        status = None;
+        parser.feed_with(b"\x1b[?11n", &mut |event| {
+            if let Some(report) = event.downcast_ref::<PrinterStatusReport>() {
+                status = Some(report.status);
+            }
+        });
+        assert_eq!(status, Some(PrinterStatus::NotReady));
+
+        // Test CSI ? 13 n (No Printer)
+        status = None;
+        parser.feed_with(b"\x1b[?13n", &mut |event| {
+            if let Some(report) = event.downcast_ref::<PrinterStatusReport>() {
+                status = Some(report.status);
+            }
+        });
+        assert_eq!(status, Some(PrinterStatus::NoPrinter));
+    }
+
+    #[test]
+    fn test_keyboard_status_report() {
+        use crate::event::dsr::KeyboardStatusReport;
+
+        let mut parser = TerminalInputParser::new();
+
+        // Test CSI ? 27 ; 1 n (keyboard dialect 1)
+        let mut dialect: Option<u8> = None;
+        parser.feed_with(b"\x1b[?27;1n", &mut |event| {
+            if let Some(report) = event.downcast_ref::<KeyboardStatusReport>() {
+                dialect = Some(report.dialect);
+            }
+        });
+        assert_eq!(dialect, Some(1));
+
+        // Test CSI ? 27 ; 5 n (keyboard dialect 5)
+        dialect = None;
+        parser.feed_with(b"\x1b[?27;5n", &mut |event| {
+            if let Some(report) = event.downcast_ref::<KeyboardStatusReport>() {
+                dialect = Some(report.dialect);
+            }
+        });
+        assert_eq!(dialect, Some(5));
+    }
+
+    #[test]
+    fn test_memory_checksum_report() {
+        use crate::event::dsr::MemoryChecksumReport;
+
+        let mut parser = TerminalInputParser::new();
+
+        // Test CSI ? 63 ; 42 ; 65535 n
+        let mut id: Option<u16> = None;
+        let mut checksum: Option<u16> = None;
+        parser.feed_with(b"\x1b[?63;42;65535n", &mut |event| {
+            if let Some(report) = event.downcast_ref::<MemoryChecksumReport>() {
+                id = Some(report.id);
+                checksum = Some(report.checksum);
+            }
+        });
+        assert_eq!(id, Some(42));
+        assert_eq!(checksum, Some(65535));
+    }
+
+    #[test]
+    fn test_udk_status_report() {
+        use crate::event::dsr::{UdkStatus, UdkStatusReport};
+
+        let mut parser = TerminalInputParser::new();
+
+        // Test CSI ? 20 n (UDK Locked)
+        let mut status: Option<UdkStatus> = None;
+        parser.feed_with(b"\x1b[?20n", &mut |event| {
+            if let Some(report) = event.downcast_ref::<UdkStatusReport>() {
+                status = Some(report.status);
+            }
+        });
+        assert_eq!(status, Some(UdkStatus::Locked));
+
+        // Test CSI ? 21 n (UDK Unlocked)
+        status = None;
+        parser.feed_with(b"\x1b[?21n", &mut |event| {
+            if let Some(report) = event.downcast_ref::<UdkStatusReport>() {
+                status = Some(report.status);
+            }
+        });
+        assert_eq!(status, Some(UdkStatus::Unlocked));
+    }
+
+    #[test]
+    fn test_locator_status_report() {
+        use crate::event::dsr::{LocatorStatus, LocatorStatusReport};
+
+        let mut parser = TerminalInputParser::new();
+
+        // Test CSI ? 50 n (No Locator)
+        let mut status: Option<LocatorStatus> = None;
+        parser.feed_with(b"\x1b[?50n", &mut |event| {
+            if let Some(report) = event.downcast_ref::<LocatorStatusReport>() {
+                status = Some(report.status);
+            }
+        });
+        assert_eq!(status, Some(LocatorStatus::NoLocator));
+
+        // Test CSI ? 53 n (Locator Available)
+        status = None;
+        parser.feed_with(b"\x1b[?53n", &mut |event| {
+            if let Some(report) = event.downcast_ref::<LocatorStatusReport>() {
+                status = Some(report.status);
+            }
+        });
+        assert_eq!(status, Some(LocatorStatus::Available));
+    }
+
+    #[test]
+    fn test_operating_status_report() {
+        use crate::event::dsr::OperatingStatusReport;
+
+        let mut parser = TerminalInputParser::new();
+
+        // Test CSI 0 n (Operating Status OK)
+        let mut found = false;
+        parser.feed_with(b"\x1b[0n", &mut |event| {
+            if event.downcast_ref::<OperatingStatusReport>().is_some() {
+                found = true;
+            }
+        });
+        assert!(found, "OperatingStatusReport should be parsed");
+    }
+
+    #[test]
+    fn test_operating_status_report_private() {
+        use crate::event::dsr::OperatingStatusReportPrivate;
+
+        let mut parser = TerminalInputParser::new();
+
+        // Test CSI ? 0 n (Private Operating Status OK)
+        let mut found = false;
+        parser.feed_with(b"\x1b[?0n", &mut |event| {
+            if event
+                .downcast_ref::<OperatingStatusReportPrivate>()
+                .is_some()
+            {
+                found = true;
+            }
+        });
+        assert!(found, "OperatingStatusReportPrivate should be parsed");
     }
 }

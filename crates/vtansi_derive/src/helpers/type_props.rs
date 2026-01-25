@@ -12,8 +12,8 @@ use crate::helpers::WriteOperationBuilder;
 use crate::helpers::metadata::{AnsiChars, ControlDirection, FieldLocation};
 
 use super::metadata::{
-    AnsiChar, AnsiString, AnsiStrings, ControlFunctionKind, ControlKeyword,
-    DeriveInputExt, StructFormat, TypeMeta,
+    AnsiChar, AnsiString, AnsiStrings, AnsiStringsAlts, ControlFunctionKind,
+    ControlKeyword, DeriveInputExt, StructFormat, TypeMeta,
 };
 use super::occurrence_error;
 use super::repr_type::extract_repr_type;
@@ -208,9 +208,10 @@ pub struct ControlProperties {
     /// Optional private marker byte (one of '<', '=', '>', `?`).
     pub private: Option<AnsiChar>,
 
-    /// Parameter byte sequences (const params), each parameter is a vector
-    /// of bytes.
-    pub params: AnsiStrings,
+    /// Alternative parameter byte sequences (const params).
+    /// Each alternative is a list of parameters.
+    /// Supports syntax like `params = ['12'] | ['13']`.
+    pub params: AnsiStringsAlts,
 
     /// Intermediate byte sequence.
     pub intermediate: Option<AnsiString>,
@@ -263,7 +264,8 @@ impl HasFormatProperties for ControlProperties {
     }
 
     fn offset(&self) -> usize {
-        self.params.len()
+        // Use the first alternative's length as the offset
+        self.params.first().len()
     }
 }
 
@@ -286,8 +288,18 @@ impl ControlProperties {
         }
     }
 
+    /// Get static prefix using the first params alternative (for encoding).
     #[must_use]
     pub fn get_static_prefix(&self) -> Vec<u8> {
+        self.get_static_prefix_with_params(self.params.first())
+    }
+
+    /// Get static prefix with a specific params set.
+    #[must_use]
+    pub fn get_static_prefix_with_params(
+        &self,
+        params: &AnsiStrings,
+    ) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::new();
         buf.extend(self.kind.introducer().to_vec());
         if let Some(private) = &self.private {
@@ -308,7 +320,7 @@ impl ControlProperties {
         {
             buf.push(*code)
         }
-        for param in &self.params {
+        for param in params {
             if i > 0 {
                 buf.push(*self.delimiter);
             }
@@ -319,7 +331,7 @@ impl ControlProperties {
         buf
     }
 
-    /// Generate trie key.
+    /// Generate trie key using the first params alternative.
     ///
     /// The `param_marker` byte is used for CSI sequences:
     /// - 0x00 = no params
@@ -331,11 +343,29 @@ impl ControlProperties {
     /// whether to include the data_delimiter after the static data string
     /// for OSC sequences.
     #[must_use]
+    #[allow(dead_code)]
     pub fn get_key(
         &self,
         final_byte: Option<u8>,
         param_marker: u8,
         has_data_params: bool,
+    ) -> Vec<u8> {
+        self.get_key_with_params(
+            final_byte,
+            param_marker,
+            has_data_params,
+            self.params.first(),
+        )
+    }
+
+    /// Generate trie key with a specific params set.
+    #[must_use]
+    pub fn get_key_with_params(
+        &self,
+        final_byte: Option<u8>,
+        param_marker: u8,
+        has_data_params: bool,
+        params: &AnsiStrings,
     ) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::new();
         buf.extend(self.kind.introducer().to_vec());
@@ -398,7 +428,7 @@ impl ControlProperties {
         if self.kind == ControlFunctionKind::Dcs && !self.data.is_empty() {
             buf.extend(self.data.iter());
         }
-        for param in &self.params {
+        for param in params {
             if i > 0 {
                 buf.push(*self.delimiter);
             }
@@ -728,7 +758,7 @@ impl HasTypeProperties for DeriveInput {
         // New control sequence properties
         let mut kind = None;
         let mut private = None;
-        let mut params = AnsiStrings::new();
+        let mut params = AnsiStringsAlts::new();
         let mut intermediate = None;
         let mut final_bytes = AnsiChars::new();
         let mut data = AnsiString::new();

@@ -62,14 +62,74 @@ pub fn generate_param_decoding(
     params: &StructParamInfo,
     props: &impl HasFormatProperties,
     source: &ParamSource,
+    static_params_source: Option<&ParamSource>,
     data_source: Option<&ParamSource>,
     finalbyte_source: Option<&ParamSource>,
     into: Option<&syn::Path>,
 ) -> syn::Result<(TokenStream, TokenStream)> {
+    // Separate static_params fields from regular params fields
+    let (static_params_fields, regular_params_fields): (Vec<_>, Vec<_>) =
+        params
+            .params
+            .fields
+            .iter()
+            .partition(|f| f.is_static_params);
+
+    // Create modified Params structs for each group
+    let regular_params = Params {
+        fields: regular_params_fields.into_iter().cloned().collect(),
+        required_count: params
+            .params
+            .fields
+            .iter()
+            .filter(|f| !f.is_static_params && !f.is_optional)
+            .count(),
+        total_count: params
+            .params
+            .fields
+            .iter()
+            .filter(|f| {
+                !f.is_static_params && f.mux_index.is_none() && !f.is_flatten
+            })
+            .count(),
+        has_mux: params.params.has_mux,
+        has_flatten: params.params.has_flatten,
+        has_static_params: false,
+    };
+
+    let static_params = Params {
+        fields: static_params_fields.into_iter().cloned().collect(),
+        required_count: params
+            .params
+            .fields
+            .iter()
+            .filter(|f| f.is_static_params && !f.is_optional)
+            .count(),
+        total_count: params
+            .params
+            .fields
+            .iter()
+            .filter(|f| {
+                f.is_static_params && f.mux_index.is_none() && !f.is_flatten
+            })
+            .count(),
+        has_mux: false,
+        has_flatten: false,
+        has_static_params: true,
+    };
+
     let decoding = match props.format() {
         StructFormat::Map => {
             let param_decoding =
-                generate_map_decoding(&params.params, props, source)?;
+                generate_map_decoding(&regular_params, props, source)?;
+            let static_param_decoding = if let Some(static_source) =
+                static_params_source
+                && !static_params.is_empty()
+            {
+                generate_map_decoding(&static_params, props, static_source)?
+            } else {
+                quote! {}
+            };
             let data_param_decoding = if let Some(data) = data_source
                 && !params.data_params.is_empty()
             {
@@ -91,6 +151,7 @@ pub fn generate_param_decoding(
             };
 
             quote! {
+                #static_param_decoding
                 #param_decoding
                 #data_param_decoding
                 #final_byte_decoding
@@ -98,7 +159,15 @@ pub fn generate_param_decoding(
         }
         StructFormat::Vector => {
             let param_decoding =
-                generate_vector_decoding(&params.params, props, source)?;
+                generate_vector_decoding(&regular_params, props, source)?;
+            let static_param_decoding = if let Some(static_source) =
+                static_params_source
+                && !static_params.is_empty()
+            {
+                generate_vector_decoding(&static_params, props, static_source)?
+            } else {
+                quote! {}
+            };
             let data_param_decoding = if let Some(data) = data_source
                 && !params.data_params.is_empty()
             {
@@ -120,6 +189,7 @@ pub fn generate_param_decoding(
             };
 
             quote! {
+                #static_param_decoding
                 #param_decoding
                 #data_param_decoding
                 #final_byte_decoding
@@ -270,14 +340,19 @@ fn generate_vector_decoding(
     let delimiter_lit = &props.delimiter().to_literal();
     let total_count = params.total_count;
 
+    // Use a unique iterator name based on the source to avoid shadowing
+    // when processing multiple param sources (e.g., static_params vs regular params)
+    let source_ident = &source.ident;
+    let iter_name = format!("__vtansi_{}_iter", source_ident);
+    let exhausted_name = format!("__vtansi_{}_exhausted", source_ident);
+    let prev_name = format!("__vtansi_{}_prev", source_ident);
+
     let param_iterator =
-        syn::Ident::new("__vtansi_params", proc_macro2::Span::mixed_site());
+        syn::Ident::new(&iter_name, proc_macro2::Span::mixed_site());
     let params_exhausted =
-        syn::Ident::new("__vtansi_exhausted", proc_macro2::Span::mixed_site());
-    let prev_params_bytes = syn::Ident::new(
-        "__vtansi_prev_params",
-        proc_macro2::Span::mixed_site(),
-    );
+        syn::Ident::new(&exhausted_name, proc_macro2::Span::mixed_site());
+    let prev_params_bytes =
+        syn::Ident::new(&prev_name, proc_macro2::Span::mixed_site());
 
     let mux_setup = if params.has_mux {
         quote! { let mut #prev_params_bytes: [&[u8]; #total_count] = [&[]; #total_count]; }
@@ -285,7 +360,6 @@ fn generate_vector_decoding(
         quote! {}
     };
 
-    let source_ident = &source.ident;
     let (_iter, setup) = match source.format {
         ParamSourceFormat::Flat => {
             let iter = quote! { #source_ident.split(|&b| b == #delimiter_lit) };

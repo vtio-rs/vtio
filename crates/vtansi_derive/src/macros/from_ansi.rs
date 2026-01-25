@@ -121,6 +121,7 @@ pub fn generate_normal_struct_impl(
         &params,
         &props,
         &ParamSource::new(&source, ParamSourceFormat::Flat),
+        None, // static_params_source - not used for plain structs
         None,
         None,
         props.into.as_ref(),
@@ -166,6 +167,7 @@ pub fn generate_normal_struct_impl(
                     &params,
                     &props,
                     &ParamSource::new(&iter_source, ParamSourceFormat::Iter),
+                    None, // static_params_source - not used for plain structs
                     None,
                     None,
                     props.into.as_ref(),

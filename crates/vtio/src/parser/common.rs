@@ -325,8 +325,16 @@ where
             answer @ (Answer::Match(handler)
             | Answer::PrefixAndMatch(handler)) => {
                 consumed_params += 1;
+                let static_params = &all_params[..consumed_params];
                 let remaining_params = &all_params[consumed_params..];
-                if handler(&data.with_params(remaining_params), cb).is_ok() {
+                if handler(
+                    &data
+                        .with_params(remaining_params)
+                        .with_static_params(static_params),
+                    cb,
+                )
+                .is_ok()
+                {
                     return true;
                 }
                 if answer.is_prefix() {
@@ -339,10 +347,17 @@ where
         }
     }
 
+    let static_params = &all_params[..consumed_params];
     let remaining_params = &all_params[consumed_params..];
 
     if let Some(handler) = param_prefix_handler
-        && handler(&data.with_params(remaining_params), cb).is_ok()
+        && handler(
+            &data
+                .with_params(remaining_params)
+                .with_static_params(static_params),
+            cb,
+        )
+        .is_ok()
     {
         return true;
     }

@@ -15,6 +15,9 @@ pub type AnsiEmitFn<'c> = dyn for<'a, 'b> FnMut(&'b dyn AnsiEvent<'a>) + 'c;
 #[derive(Default, Clone, Copy)]
 pub struct AnsiEventData<'a> {
     params: Option<&'a [&'a [u8]]>,
+    /// Static params consumed during trie matching.
+    /// Used by fields with `#[vtansi(locate = "static_params")]`.
+    static_params: Option<&'a [&'a [u8]]>,
     data: Option<&'a [u8]>,
     finalbyte: Option<&'a [u8]>,
 }
@@ -31,6 +34,7 @@ impl<'a> AnsiEventData<'a> {
     pub fn new_with_params(params: &'a [&'a [u8]]) -> Self {
         Self {
             params: Some(params),
+            static_params: None,
             data: None,
             finalbyte: None,
         }
@@ -41,6 +45,18 @@ impl<'a> AnsiEventData<'a> {
     pub fn with_params(&self, params: &'a [&'a [u8]]) -> Self {
         Self {
             params: Some(params),
+            static_params: self.static_params,
+            data: self.data,
+            finalbyte: self.finalbyte,
+        }
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn with_static_params(&self, static_params: &'a [&'a [u8]]) -> Self {
+        Self {
+            params: self.params,
+            static_params: Some(static_params),
             data: self.data,
             finalbyte: self.finalbyte,
         }
@@ -51,6 +67,7 @@ impl<'a> AnsiEventData<'a> {
     pub fn new_with_data(data: &'a [u8]) -> Self {
         Self {
             params: None,
+            static_params: None,
             data: Some(data),
             finalbyte: None,
         }
@@ -61,6 +78,7 @@ impl<'a> AnsiEventData<'a> {
     pub fn with_data(&self, data: &'a [u8]) -> Self {
         Self {
             params: self.params,
+            static_params: self.static_params,
             data: Some(data),
             finalbyte: self.finalbyte,
         }
@@ -71,6 +89,7 @@ impl<'a> AnsiEventData<'a> {
     pub fn new_with_finalbyte(finalbyte: &'a [u8]) -> Self {
         Self {
             params: None,
+            static_params: None,
             data: None,
             finalbyte: Some(finalbyte),
         }
@@ -81,6 +100,7 @@ impl<'a> AnsiEventData<'a> {
     pub fn with_finalbyte(&self, finalbyte: &'a [u8]) -> Self {
         Self {
             params: self.params,
+            static_params: self.static_params,
             data: self.data,
             finalbyte: Some(finalbyte),
         }
@@ -92,6 +112,14 @@ impl<'a> AnsiEventData<'a> {
         &self,
     ) -> Option<std::iter::Copied<std::slice::Iter<'a, &'a [u8]>>> {
         self.params.map(|p| p.iter().copied())
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn iter_static_params(
+        &self,
+    ) -> Option<std::iter::Copied<std::slice::Iter<'a, &'a [u8]>>> {
+        self.static_params.map(|p| p.iter().copied())
     }
 
     #[must_use]
