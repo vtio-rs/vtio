@@ -40,7 +40,8 @@ use crate::helpers::{
 };
 
 use crate::macros::param_decoder::{
-    ParamSource, ParamSourceFormat, generate_param_decoding,
+    ParamDecodingContext, ParamSource, ParamSourceFormat,
+    generate_param_decoding,
 };
 use crate::macros::param_encoder::generate_param_encoding;
 
@@ -410,16 +411,10 @@ fn generate_esc_decode_impl(
     let params_ident =
         syn::Ident::new("__vtansi_params", proc_macro2::Span::mixed_site());
     let stype: syn::Type = syn::parse_quote!(Self);
-    let (params_decoding, constructor) = generate_param_decoding(
-        &stype,
-        params,
-        &props,
-        &ParamSource::new(&params_ident, ParamSourceFormat::Flat),
-        None, // static_params_source - ESC sequences don't have static params
-        None,
-        None,
-        props.into.as_ref(),
-    )?;
+    let source = ParamSource::new(&params_ident, ParamSourceFormat::Flat);
+    let ctx = ParamDecodingContext::new(&stype, params, props, &source)
+        .with_into(props.into.as_ref());
+    let (params_decoding, constructor) = generate_param_decoding(&ctx)?;
     let name = &ast.ident;
     let generics = &ast.generics;
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
@@ -712,22 +707,17 @@ pub fn generate_registry_entries(
         None
     };
 
-    let (param_decoding, constructor) = generate_param_decoding(
-        &stype,
-        params,
-        props,
-        &ParamSource::new(&param_source, ParamSourceFormat::Split),
-        static_params_source.as_ref(),
-        Some(&ParamSource::new(
-            &data_param_source,
-            ParamSourceFormat::Flat,
-        )),
-        Some(&ParamSource::new(
-            &final_byte_source,
-            ParamSourceFormat::Flat,
-        )),
-        props.into.as_ref(),
-    )?;
+    let source = ParamSource::new(&param_source, ParamSourceFormat::Split);
+    let data_source =
+        ParamSource::new(&data_param_source, ParamSourceFormat::Flat);
+    let finalbyte_source =
+        ParamSource::new(&final_byte_source, ParamSourceFormat::Flat);
+    let ctx = ParamDecodingContext::new(&stype, params, props, &source)
+        .with_static_params_source(static_params_source.as_ref())
+        .with_data_source(Some(&data_source))
+        .with_finalbyte_source(Some(&finalbyte_source))
+        .with_into(props.into.as_ref());
+    let (param_decoding, constructor) = generate_param_decoding(&ctx)?;
     let kind = props.kind.as_lib_enum();
     // Use the first params alternative for the prefix (used in registry entry metadata)
     let prefix = props.get_static_prefix();

@@ -33,7 +33,8 @@ use crate::helpers::{
 };
 
 use crate::macros::param_decoder::{
-    ParamSource, ParamSourceFormat, generate_param_decoding,
+    ParamDecodingContext, ParamSource, ParamSourceFormat,
+    generate_param_decoding,
 };
 
 /// Generate the implementation of `TryFromAnsi` for an enum or struct.
@@ -112,20 +113,14 @@ pub fn generate_normal_struct_impl(
     };
 
     // Handle normal structs - generate TryFromAnsi implementation
-    let source =
+    let source_ident =
         syn::Ident::new("__vtansi_data", proc_macro2::Span::mixed_site());
     let stype: syn::Type = syn::parse_quote!(Self);
     let params = extract_struct_param_info(ast, None, FieldLocation::Params)?;
-    let (param_decoding, constructor) = generate_param_decoding(
-        &stype,
-        &params,
-        &props,
-        &ParamSource::new(&source, ParamSourceFormat::Flat),
-        None, // static_params_source - not used for plain structs
-        None,
-        None,
-        props.into.as_ref(),
-    )?;
+    let source = ParamSource::new(&source_ident, ParamSourceFormat::Flat);
+    let ctx = ParamDecodingContext::new(&stype, &params, &props, &source)
+        .with_into(props.into.as_ref());
+    let (param_decoding, constructor) = generate_param_decoding(&ctx)?;
 
     // For TryFromAnsiIter, we need a lifetime parameter for the trait
     let iter_lt = if get_primary_lifetime(ast).is_some() {
@@ -157,21 +152,21 @@ pub fn generate_normal_struct_impl(
         }
         StructFormat::Vector => {
             // For vector format, consume one item per field
-            let iter_source = syn::Ident::new(
+            let iter_source_ident = syn::Ident::new(
                 "__vtansi_iter",
                 proc_macro2::Span::call_site(),
             );
+            let iter_source =
+                ParamSource::new(&iter_source_ident, ParamSourceFormat::Iter);
+            let iter_ctx = ParamDecodingContext::new(
+                &stype,
+                &params,
+                &props,
+                &iter_source,
+            )
+            .with_into(props.into.as_ref());
             let (iter_param_decoding, iter_constructor) =
-                generate_param_decoding(
-                    &stype,
-                    &params,
-                    &props,
-                    &ParamSource::new(&iter_source, ParamSourceFormat::Iter),
-                    None, // static_params_source - not used for plain structs
-                    None,
-                    None,
-                    props.into.as_ref(),
-                )?;
+                generate_param_decoding(&iter_ctx)?;
 
             quote! {
                 #[allow(clippy::use_self)]
@@ -197,7 +192,7 @@ pub fn generate_normal_struct_impl(
         #[automatically_derived]
         impl #impl_generics ::vtansi::parse::TryFromAnsi #trait_lt for #name #ty_generics #where_clause {
             #[inline]
-            fn try_from_ansi(#source: &#lt [u8]) -> ::core::result::Result<Self, ::vtansi::parse::ParseError> {
+            fn try_from_ansi(#source_ident: &#lt [u8]) -> ::core::result::Result<Self, ::vtansi::parse::ParseError> {
                 ::core::result::Result::Ok({
                     #param_decoding
                     #constructor

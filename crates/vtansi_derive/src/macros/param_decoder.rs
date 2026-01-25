@@ -44,6 +44,82 @@ impl ParamSource {
     }
 }
 
+/// Context for parameter decoding code generation.
+///
+/// This struct groups together all the inputs needed to generate parameter
+/// decoding code.
+pub struct ParamDecodingContext<'a, P: HasFormatProperties> {
+    /// The type being constructed (e.g., `Self`)
+    pub typename: &'a syn::Type,
+    /// Information about the struct's parameters
+    pub params: &'a StructParamInfo,
+    /// Format properties (delimiter, format type, etc.)
+    pub props: &'a P,
+    /// The main parameter source
+    pub source: &'a ParamSource,
+    /// Optional source for static params (used in CSI sequences)
+    pub static_params_source: Option<&'a ParamSource>,
+    /// Optional source for data params
+    pub data_source: Option<&'a ParamSource>,
+    /// Optional source for final byte params
+    pub finalbyte_source: Option<&'a ParamSource>,
+    /// Optional path for `.into()` conversion on the result
+    pub into: Option<&'a syn::Path>,
+}
+
+impl<'a, P: HasFormatProperties> ParamDecodingContext<'a, P> {
+    /// Creates a new context with the required fields.
+    ///
+    /// Optional sources default to `None`.
+    pub fn new(
+        typename: &'a syn::Type,
+        params: &'a StructParamInfo,
+        props: &'a P,
+        source: &'a ParamSource,
+    ) -> Self {
+        Self {
+            typename,
+            params,
+            props,
+            source,
+            static_params_source: None,
+            data_source: None,
+            finalbyte_source: None,
+            into: None,
+        }
+    }
+
+    /// Sets the static params source.
+    pub fn with_static_params_source(
+        mut self,
+        source: Option<&'a ParamSource>,
+    ) -> Self {
+        self.static_params_source = source;
+        self
+    }
+
+    /// Sets the data source.
+    pub fn with_data_source(mut self, source: Option<&'a ParamSource>) -> Self {
+        self.data_source = source;
+        self
+    }
+
+    /// Sets the final byte source.
+    pub fn with_finalbyte_source(
+        mut self,
+        source: Option<&'a ParamSource>,
+    ) -> Self {
+        self.finalbyte_source = source;
+        self
+    }
+
+    /// Sets the into path for conversion.
+    pub fn with_into(mut self, into: Option<&'a syn::Path>) -> Self {
+        self.into = into;
+        self
+    }
+}
+
 /// Generate parameter decoding code for a list of fields.
 ///
 /// This function generates code that parses parameters and constructs field
@@ -57,17 +133,20 @@ impl ParamSource {
 ///
 /// A TokenStream containing the body suitable for implementing
 /// `try_into_ansi()`.
-#[allow(clippy::too_many_arguments)]
-pub fn generate_param_decoding(
-    typename: &syn::Type,
-    params: &StructParamInfo,
-    props: &impl HasFormatProperties,
-    source: &ParamSource,
-    static_params_source: Option<&ParamSource>,
-    data_source: Option<&ParamSource>,
-    finalbyte_source: Option<&ParamSource>,
-    into: Option<&syn::Path>,
+pub fn generate_param_decoding<P: HasFormatProperties>(
+    ctx: &ParamDecodingContext<'_, P>,
 ) -> syn::Result<(TokenStream, TokenStream)> {
+    let ParamDecodingContext {
+        typename,
+        params,
+        props,
+        source,
+        static_params_source,
+        data_source,
+        finalbyte_source,
+        into,
+    } = ctx;
+
     // Separate static_params fields from regular params fields
     let (static_params_fields, regular_params_fields): (Vec<_>, Vec<_>) =
         params
@@ -122,29 +201,29 @@ pub fn generate_param_decoding(
     let decoding = match props.format() {
         StructFormat::Map => {
             let param_decoding =
-                generate_map_decoding(&regular_params, props, source)?;
+                generate_map_decoding(&regular_params, *props, source)?;
             let static_param_decoding = if let Some(static_source) =
-                static_params_source
+                *static_params_source
                 && !static_params.is_empty()
             {
-                generate_map_decoding(&static_params, props, static_source)?
+                generate_map_decoding(&static_params, *props, static_source)?
             } else {
                 quote! {}
             };
-            let data_param_decoding = if let Some(data) = data_source
+            let data_param_decoding = if let Some(data) = *data_source
                 && !params.data_params.is_empty()
             {
-                generate_map_decoding(&params.data_params, props, data)?
+                generate_map_decoding(&params.data_params, *props, data)?
             } else {
                 quote! {}
             };
             let final_byte_decoding = if let Some(finalbyte_source) =
-                finalbyte_source
+                *finalbyte_source
                 && !params.final_byte_params.is_empty()
             {
                 generate_vector_decoding(
                     &params.final_byte_params,
-                    props,
+                    *props,
                     finalbyte_source,
                 )?
             } else {
@@ -160,29 +239,29 @@ pub fn generate_param_decoding(
         }
         StructFormat::Vector => {
             let param_decoding =
-                generate_vector_decoding(&regular_params, props, source)?;
+                generate_vector_decoding(&regular_params, *props, source)?;
             let static_param_decoding = if let Some(static_source) =
-                static_params_source
+                *static_params_source
                 && !static_params.is_empty()
             {
-                generate_vector_decoding(&static_params, props, static_source)?
+                generate_vector_decoding(&static_params, *props, static_source)?
             } else {
                 quote! {}
             };
-            let data_param_decoding = if let Some(data) = data_source
+            let data_param_decoding = if let Some(data) = *data_source
                 && !params.data_params.is_empty()
             {
-                generate_vector_decoding(&params.data_params, props, data)?
+                generate_vector_decoding(&params.data_params, *props, data)?
             } else {
                 quote! {}
             };
             let final_byte_decoding = if let Some(finalbyte_source) =
-                finalbyte_source
+                *finalbyte_source
                 && !params.final_byte_params.is_empty()
             {
                 generate_vector_decoding(
                     &params.final_byte_params,
-                    props,
+                    *props,
                     finalbyte_source,
                 )?
             } else {
@@ -198,7 +277,7 @@ pub fn generate_param_decoding(
         }
     };
 
-    let constructor = struct_constructor(typename, params, into);
+    let constructor = struct_constructor(typename, params, *into);
 
     Ok((decoding, constructor))
 }
