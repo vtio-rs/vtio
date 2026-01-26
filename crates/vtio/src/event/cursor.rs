@@ -524,6 +524,62 @@ pub struct NextLine;
 #[vtansi(esc, finalbyte = 'H')]
 pub struct HorizontalTabSet;
 
+/// Clear Tab Stop at Current Column (`TBC`).
+///
+/// *Sequence*: `CSI g` or `CSI 0 g`
+///
+/// Clears the tab stop at the current cursor column, if one is set.
+///
+/// Tab stops define positions where the cursor moves when a horizontal
+/// tab character is processed. This command removes the tab stop at the
+/// current column only; other tab stops remain unaffected.
+///
+/// If no tab stop is set at the current column, this command has no effect.
+///
+/// Use [`ClearAllTabStops`] to clear all tab stops at once.
+///
+/// See <https://vt100.net/docs/vt510-rm/TBC.html> for the VT510
+/// specification.
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, finalbyte = 'g')]
+pub struct ClearTabStop;
+
+/// Clear All Tab Stops (`TBC`).
+///
+/// *Sequence*: `CSI 3 g`
+///
+/// Clears all tab stops that have been set.
+///
+/// After this command, there are no tab stops defined. The terminal
+/// typically starts with default tab stops at every 8th column (1, 9,
+/// 17, 25, ...). This command removes all of them.
+///
+/// New tab stops can be set using [`HorizontalTabSet`].
+///
+/// See <https://vt100.net/docs/vt510-rm/TBC.html> for the VT510
+/// specification.
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, params = ["3"], finalbyte = 'g')]
+pub struct ClearAllTabStops;
+
 /// Reverse Index (`RI`).
 ///
 /// *Sequence*: `ESC M`
@@ -1844,5 +1900,27 @@ mod tests {
             CursorStyleReportData::try_from_ansi(b"q").is_err(),
             "Should fail with too short input"
         );
+    }
+
+    #[test]
+    fn test_clear_tab_stop_encoding() {
+        let clear = ClearTabStop;
+
+        let mut buf = Vec::new();
+        clear.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        assert_eq!(encoded, "\x1b[g");
+    }
+
+    #[test]
+    fn test_clear_all_tab_stops_encoding() {
+        let clear = ClearAllTabStops;
+
+        let mut buf = Vec::new();
+        clear.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        assert_eq!(encoded, "\x1b[3g");
     }
 }

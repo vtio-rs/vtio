@@ -67,6 +67,8 @@
 //! | `ESC D` | [`cursor::Index`] |
 //! | `ESC E` | [`cursor::NextLine`] |
 //! | `ESC H` | [`cursor::HorizontalTabSet`] |
+//! | `CSI g` or `CSI 0 g` | [`cursor::ClearTabStop`] |
+//! | `CSI 3 g` | [`cursor::ClearAllTabStops`] |
 //! | `ESC M` | [`cursor::ReverseIndex`] |
 //! | `CSI Ps A` | [`cursor::CursorUp`] |
 //! | `CSI Ps B` | [`cursor::CursorDown`] |
