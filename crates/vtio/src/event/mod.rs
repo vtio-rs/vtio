@@ -2,6 +2,14 @@
 //!
 //! # Sequence Reference
 //!
+//! ## clipboard
+//!
+//! | Sequence | Struct |
+//! |----------|--------|
+//! | `OSC 52 ; Pc ; Pd ST` (set) | [`clipboard::Clipboard`] with [`clipboard::ClipboardAction::Set`] |
+//! | `OSC 52 ; Pc ; ? ST` (query) | [`clipboard::Clipboard`] with [`clipboard::ClipboardAction::Query`] |
+//! | `OSC 52 ; Pc ; Pd ST` (response) | [`clipboard::ClipboardResponse`] |
+//!
 //! ## charset
 //!
 //! | Sequence | Struct |
@@ -276,6 +284,7 @@
 //! | `CSI 6 ; Ps ; Ps t` | [`window::CellSizePixelsReport`] |
 
 pub mod charset;
+pub mod clipboard;
 pub mod color;
 pub mod cursor;
 pub mod dsr;
