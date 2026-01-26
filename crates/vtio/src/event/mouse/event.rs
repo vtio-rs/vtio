@@ -4,37 +4,8 @@ use std::fmt::{self, Write};
 
 use vtansi::{ParseError, TerseDisplay};
 
+use crate::event::common::Coords;
 use crate::event::keyboard::KeyModifiers;
-
-/// Terminal coordinates (column and row).
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    vtansi::derive::ToAnsi,
-    vtansi::derive::FromAnsi,
-)]
-#[vtansi(format = "vector")]
-pub struct Coordinates {
-    /// Column position (1-based).
-    pub column: u16,
-    /// Row position (1-based).
-    pub row: u16,
-}
-
-impl Coordinates {
-    /// Create new coordinates.
-    #[must_use]
-    pub const fn new(column: u16, row: u16) -> Self {
-        Self { column, row }
-    }
-}
 
 #[cfg_attr(
     feature = "serde",
@@ -129,7 +100,7 @@ pub struct MouseEvent {
     /// The key modifiers active when the event occurred.
     pub modifiers: MouseKeyModifiers,
     /// The coordinates where the event occurred.
-    pub coords: Coordinates,
+    pub coords: Coords,
 }
 
 impl MouseEvent {
@@ -138,7 +109,7 @@ impl MouseEvent {
     pub const fn new(
         kind: MouseEventKind,
         modifiers: MouseKeyModifiers,
-        coords: Coordinates,
+        coords: Coords,
     ) -> Self {
         Self {
             kind,
@@ -149,8 +120,8 @@ impl MouseEvent {
 
     /// Get the column where the event occurred (0-based).
     #[must_use]
-    pub const fn column(&self) -> u16 {
-        self.coords.column.saturating_sub(1)
+    pub const fn col(&self) -> u16 {
+        self.coords.col.saturating_sub(1)
     }
 
     /// Get the row where the event occurred (0-based).
@@ -211,7 +182,7 @@ impl TerseDisplay for MouseEvent {
         }
 
         // Coordinates
-        write!(f, "@{},{}", self.coords.column, self.coords.row)?;
+        write!(f, "@{},{}", self.coords.col, self.coords.row)?;
 
         f.write_char(')')
     }

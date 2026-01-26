@@ -78,6 +78,36 @@ crate::terminal_mode!(
     SmoothScrollMode, private = '?', params = ["4"]
 );
 
+crate::terminal_mode!(
+    /// Left/Right Margin Mode (`DECLRMM`).
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 69 h` (set) / `CSI ? 69 l` (reset)
+    ///
+    /// Control whether left and right margins are enabled.
+    ///
+    /// When set, left/right margin mode is enabled. The
+    /// [`SetLeftAndRightMargins`] sequence can be used to define
+    /// horizontal margins, and horizontal scrolling operations respect
+    /// these margins.
+    ///
+    /// When reset, left/right margin mode is disabled. Horizontal
+    /// margins are ignored, and [`SetLeftAndRightMargins`] has no
+    /// effect. The `CSI Ps ; Ps s` sequence is interpreted as Save
+    /// Cursor (SCOSC) instead.
+    ///
+    /// This mode affects:
+    /// - Horizontal scrolling operations ([`ScrollLeft`], [`ScrollRight`])
+    /// - Character insertion and deletion
+    /// - Line wrapping behavior
+    /// - Cursor movement restrictions (when origin mode is also set)
+    ///
+    /// See <https://vt100.net/docs/vt510-rm/DECLRMM.html> for the VT510
+    /// reference manual entry.
+    LeftRightMarginMode, private = '?', params = ["69"]
+);
+
 /// Set Top and Bottom Margins (`DECSTBM`).
 ///
 /// *Sequence*: `CSI Ps ; Ps r`

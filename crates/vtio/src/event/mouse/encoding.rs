@@ -17,9 +17,10 @@ use vtansi::{
     write_csi,
 };
 
+use crate::event::Coords;
+
 use super::{
-    Coordinates, MouseEvent, MouseEventKind, MouseKeyModifiers,
-    modifiers_from_button_code,
+    MouseEvent, MouseEventKind, MouseKeyModifiers, modifiers_from_button_code,
 };
 
 // ============================================================================
@@ -95,7 +96,7 @@ impl<'a> TryFromAnsiIter<'a> for SgrMouseEvent {
         Ok(SgrMouseEvent(MouseEvent {
             kind,
             modifiers,
-            coords: Coordinates { column, row },
+            coords: Coords::new(row, column),
         }))
     }
 }
@@ -129,7 +130,7 @@ impl AnsiEncode for SgrMouseEvent {
             <u16 as AnsiEncode>::encode_ansi_into(&btn_code, sink)?;
         written += vtansi::write_byte_into(sink, b';')?;
         written +=
-            <u16 as AnsiEncode>::encode_ansi_into(&event.coords.column, sink)?;
+            <u16 as AnsiEncode>::encode_ansi_into(&event.coords.col, sink)?;
         written += vtansi::write_byte_into(sink, b';')?;
         written +=
             <u16 as AnsiEncode>::encode_ansi_into(&event.coords.row, sink)?;
@@ -231,7 +232,7 @@ impl<'a> TryFromAnsiIter<'a> for UrxvtMouseEvent {
         Ok(UrxvtMouseEvent(MouseEvent {
             kind,
             modifiers,
-            coords: Coordinates { column, row },
+            coords: Coords::new(row, column),
         }))
     }
 }
@@ -266,7 +267,7 @@ impl AnsiEncode for UrxvtMouseEvent {
             <u16 as AnsiEncode>::encode_ansi_into(&btn_code, sink)?;
         written += vtansi::write_byte_into(sink, b';')?;
         written +=
-            <u16 as AnsiEncode>::encode_ansi_into(&event.coords.column, sink)?;
+            <u16 as AnsiEncode>::encode_ansi_into(&event.coords.col, sink)?;
         written += vtansi::write_byte_into(sink, b';')?;
         written +=
             <u16 as AnsiEncode>::encode_ansi_into(&event.coords.row, sink)?;
@@ -403,7 +404,7 @@ pub fn parse_mouse_event_bytes(bytes: &[u8]) -> Result<MouseEvent, ParseError> {
     Ok(MouseEvent {
         kind,
         modifiers,
-        coords: Coordinates { column, row },
+        coords: Coords::new(row, column),
     })
 }
 
@@ -466,7 +467,7 @@ impl AnsiEncode for DefaultMouseEvent {
             u16::from(event.kind) | u16::from(event.modifiers.bits());
 
         let btn_byte = encode_default_mouse_value(btn_code);
-        let col_byte = encode_default_mouse_value(event.coords.column);
+        let col_byte = encode_default_mouse_value(event.coords.col);
         let row_byte = encode_default_mouse_value(event.coords.row);
 
         write_csi!(sink; 'M', btn_byte, col_byte, row_byte)
@@ -523,7 +524,7 @@ impl AnsiEncode for MultibyteMouseEvent {
         let btn_char =
             char::from_u32(u32::from(btn_code.min(2015)) + 32).unwrap_or('\0');
         let col_char =
-            char::from_u32(u32::from(event.coords.column.min(2015)) + 32)
+            char::from_u32(u32::from(event.coords.col.min(2015)) + 32)
                 .unwrap_or('\0');
         let row_char =
             char::from_u32(u32::from(event.coords.row.min(2015)) + 32)
@@ -552,7 +553,7 @@ mod tests {
             event.kind,
             MouseEventKind::Down(MouseButton::Left)
         ));
-        assert_eq!(event.column(), 9); // 0-based
+        assert_eq!(event.col(), 9); // 0-based
         assert_eq!(event.row(), 4); // 0-based
     }
 
@@ -564,7 +565,7 @@ mod tests {
             event.kind,
             MouseEventKind::Down(MouseButton::Right)
         ));
-        assert_eq!(event.column(), 19);
+        assert_eq!(event.col(), 19);
         assert_eq!(event.row(), 14);
     }
 
@@ -580,10 +581,10 @@ mod tests {
         let sgr = SgrMouseEvent(MouseEvent {
             kind: MouseEventKind::Down(MouseButton::Left),
             modifiers: MouseKeyModifiers(KeyModifiers::NONE),
-            coords: Coordinates::new(10, 20),
+            coords: Coords::new(20, 10),
         });
         let event: MouseEvent = sgr.into();
-        assert_eq!(event.column(), 9); // 0-based
+        assert_eq!(event.col(), 9); // 0-based
         assert_eq!(event.row(), 19); // 0-based
     }
 
@@ -600,7 +601,7 @@ mod tests {
             event.kind,
             MouseEventKind::Down(MouseButton::Left)
         ));
-        assert_eq!(event.column(), 9); // 0-based
+        assert_eq!(event.col(), 9); // 0-based
         assert_eq!(event.row(), 4); // 0-based
     }
 
@@ -613,7 +614,7 @@ mod tests {
             event.kind,
             MouseEventKind::Down(MouseButton::Right)
         ));
-        assert_eq!(event.column(), 19);
+        assert_eq!(event.col(), 19);
         assert_eq!(event.row(), 14);
     }
 
@@ -638,7 +639,7 @@ mod tests {
         // Large coordinates that would overflow in default format
         let urxvt = UrxvtMouseEvent::try_from_ansi(b"32;500;300").unwrap();
         let event: MouseEvent = urxvt.into();
-        assert_eq!(event.column(), 499);
+        assert_eq!(event.col(), 499);
         assert_eq!(event.row(), 299);
     }
 
@@ -667,7 +668,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(event.column(), 9); // 0-based
+        assert_eq!(event.col(), 9); // 0-based
         assert_eq!(event.row(), 4); // 0-based
     }
 
@@ -685,7 +686,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(event.column(), 99); // 0-based (100 - 1)
+        assert_eq!(event.col(), 99); // 0-based (100 - 1)
         assert_eq!(event.row(), 49); // 0-based (50 - 1)
     }
 
@@ -704,7 +705,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(event.column(), 199); // 0-based (200 - 1)
+        assert_eq!(event.col(), 199); // 0-based (200 - 1)
         assert_eq!(event.row(), 149); // 0-based (150 - 1)
     }
 
@@ -716,7 +717,7 @@ mod tests {
         // row = 1000 + 32 = 1032 = U+0408 = 0xD0 0x88 (two-byte UTF-8)
         let event =
             parse_mouse_event_bytes(&[0x20, 0xDF, 0xB0, 0xD0, 0x88]).unwrap();
-        assert_eq!(event.column(), 1999); // 0-based (2000 - 1)
+        assert_eq!(event.col(), 1999); // 0-based (2000 - 1)
         assert_eq!(event.row(), 999); // 0-based (1000 - 1)
     }
 
@@ -751,7 +752,7 @@ mod tests {
         let event = MouseEvent {
             kind: MouseEventKind::Down(MouseButton::Left),
             modifiers: MouseKeyModifiers(KeyModifiers::NONE),
-            coords: Coordinates::new(10, 5),
+            coords: Coords::new(5, 10),
         };
         let default = DefaultMouseEvent(event);
         let encoded = default.encode_ansi().unwrap();
@@ -770,7 +771,7 @@ mod tests {
         let event = MouseEvent {
             kind: MouseEventKind::Down(MouseButton::Left),
             modifiers: MouseKeyModifiers(KeyModifiers::NONE),
-            coords: Coordinates::new(300, 200), // col exceeds 223 limit
+            coords: Coords::new(200, 300), // col exceeds 223 limit
         };
         let default = DefaultMouseEvent(event);
         let encoded = default.encode_ansi().unwrap();
@@ -793,7 +794,7 @@ mod tests {
         let event = MouseEvent {
             kind: MouseEventKind::Down(MouseButton::Left),
             modifiers: MouseKeyModifiers(KeyModifiers::NONE),
-            coords: Coordinates::new(10, 5),
+            coords: Coords::new(5, 10),
         };
         let multibyte = MultibyteMouseEvent(event);
         let encoded = multibyte.encode_ansi().unwrap();
@@ -809,7 +810,7 @@ mod tests {
         let event = MouseEvent {
             kind: MouseEventKind::Down(MouseButton::Left),
             modifiers: MouseKeyModifiers(KeyModifiers::NONE),
-            coords: Coordinates::new(100, 50),
+            coords: Coords::new(50, 100),
         };
         let multibyte = MultibyteMouseEvent(event);
         let encoded = multibyte.encode_ansi().unwrap();
@@ -827,7 +828,7 @@ mod tests {
         let event = MouseEvent {
             kind: MouseEventKind::Down(MouseButton::Left),
             modifiers: MouseKeyModifiers(KeyModifiers::NONE),
-            coords: Coordinates::new(2000, 1000),
+            coords: Coords::new(1000, 2000),
         };
         let multibyte = MultibyteMouseEvent(event);
         let encoded = multibyte.encode_ansi().unwrap();
@@ -845,7 +846,7 @@ mod tests {
         let original = MouseEvent {
             kind: MouseEventKind::Down(MouseButton::Right),
             modifiers: MouseKeyModifiers(KeyModifiers::NONE),
-            coords: Coordinates::new(200, 150),
+            coords: Coords::new(150, 200),
         };
         let multibyte = MultibyteMouseEvent(original);
         let encoded = multibyte.encode_ansi().unwrap();

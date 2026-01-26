@@ -2441,7 +2441,7 @@ fn format_mouse_event(mouse_event: &vtio::event::MouseEvent) -> String {
     // Coordinates (0-based)
     details.push(format!(
         "position: ({}, {})",
-        mouse_event.column(),
+        mouse_event.col(),
         mouse_event.row()
     ));
 

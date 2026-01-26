@@ -239,6 +239,12 @@
 //! | `ESC # 4` | [`screen::SetDoubleHeightLineBottomHalf`] |
 //! | `ESC # 5` | [`screen::SetSingleWidthLine`] |
 //! | `ESC # 6` | [`screen::SetDoubleWidthLine`] |
+//! | `CSI Pc ; Pt ; Pl ; Pb ; Pr $ x` | [`screen::FillRectangle`] |
+//! | `CSI Pt ; Pl ; Pb ; Pr $ z` | [`screen::EraseRectangle`] |
+//! | `CSI Pt ; Pl ; Pb ; Pr $ {` | [`screen::SelectiveEraseRectangle`] |
+//! | `CSI Pts ; Pls ; Pbs ; Prs ; Pps ; Ptd ; Pld ; Ppd $ v` | [`screen::CopyRectangle`] |
+//! | `CSI Pid ; Pp ; Pt ; Pl ; Pb ; Pr * y` | [`screen::RequestRectangularChecksum`] |
+//! | `DCS Pid ! ~ D...D ST` | [`screen::RectangularChecksumReport`] |
 //!
 //! ## scroll
 //!
@@ -246,6 +252,7 @@
 //! |----------|--------|
 //! | `CSI Ps ; Ps r` | [`scroll::SetTopAndBottomMargins`] |
 //! | `CSI Ps ; Ps s` | [`scroll::SetLeftAndRightMargins`] |
+//! | `CSI ? 69 h` / `CSI ? 69 l` | [`scroll::EnableLeftRightMarginMode`] / [`scroll::DisableLeftRightMarginMode`] |
 //! | `DCS $ q r ST` | [`scroll::RequestTopBottomMargins`] |
 //! | `DCS $ q s ST` | [`scroll::RequestLeftRightMargins`] |
 //! | `CSI Ps S` | [`scroll::ScrollUp`] |
@@ -326,6 +333,7 @@
 pub mod charset;
 pub mod clipboard;
 pub mod color;
+pub mod common;
 pub mod cursor;
 pub mod dsr;
 pub mod iterm;
@@ -345,6 +353,7 @@ pub use mouse::MouseEvent;
 pub use text::PlainText;
 
 // Re-export commonly used types
+pub use common::{Coords, Rect};
 pub use keyboard::{
     KeyCode, KeyEvent, KeyModifiers, KeyboardEnhancementFlags,
     KeyboardEnhancementFlagsQuery, KeyboardEnhancementFlagsResponse,

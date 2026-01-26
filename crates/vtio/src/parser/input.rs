@@ -638,7 +638,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(events[0].column(), 9); // 0-based
+        assert_eq!(events[0].col(), 9); // 0-based
         assert_eq!(events[0].row(), 4); // 0-based
     }
 
@@ -668,7 +668,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(events[0].column(), 99); // 0-based (100 - 1)
+        assert_eq!(events[0].col(), 99); // 0-based (100 - 1)
         assert_eq!(events[0].row(), 49); // 0-based (50 - 1)
 
         // Test 2: Right button click at column 200, row 150
@@ -689,7 +689,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(events[0].column(), 199); // 0-based (200 - 1)
+        assert_eq!(events[0].col(), 199); // 0-based (200 - 1)
         assert_eq!(events[0].row(), 149); // 0-based (150 - 1)
 
         // Test 3: Large coordinates near max range (2015)
@@ -703,7 +703,7 @@ mod tests {
             }
         });
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0].column(), 1999); // 0-based (2000 - 1)
+        assert_eq!(events[0].col(), 1999); // 0-based (2000 - 1)
         assert_eq!(events[0].row(), 999); // 0-based (1000 - 1)
     }
 
@@ -890,7 +890,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(events[0].column(), 72);
+        assert_eq!(events[0].col(), 72);
         assert_eq!(events[0].row(), 4);
         assert!(matches!(
             &events[1],
@@ -899,7 +899,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(events[1].column(), 72);
+        assert_eq!(events[1].col(), 72);
         assert_eq!(events[1].row(), 4);
     }
 
@@ -926,7 +926,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(events[0].column(), 9); // 0-based
+        assert_eq!(events[0].col(), 9); // 0-based
         assert_eq!(events[0].row(), 4); // 0-based
 
         // Test right button click at column 200, row 150 (large coordinates)
@@ -945,7 +945,7 @@ mod tests {
                 ..
             }
         ));
-        assert_eq!(events[0].column(), 199);
+        assert_eq!(events[0].col(), 199);
         assert_eq!(events[0].row(), 149);
 
         // Test scroll up

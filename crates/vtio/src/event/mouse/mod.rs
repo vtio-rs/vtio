@@ -35,7 +35,7 @@ mod track;
 
 // Re-export core event types
 pub use event::{
-    Coordinates, MouseButton, MouseEvent, MouseEventKind, MouseKeyModifiers,
+    MouseButton, MouseEvent, MouseEventKind, MouseKeyModifiers,
     modifiers_from_button_code,
 };
 

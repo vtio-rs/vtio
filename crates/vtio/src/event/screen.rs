@@ -1,5 +1,7 @@
 //! Screen and line erase commands.
 
+use crate::event::common::{Coords, Rect};
+
 /// Erase Display Below (`ED`).
 ///
 /// *Sequence*: `CSI Ps J` where `Ps` = 0 (default)
@@ -837,10 +839,565 @@ pub struct EraseCharacter(pub u16);
 #[vtansi(csi, finalbyte = 'b')]
 pub struct RepeatCharacter(pub u16);
 
+// =============================================================================
+// Rectangular Area Operations
+// =============================================================================
+
+/// Fill Rectangular Area (`DECFRA`).
+///
+/// *Sequence*: `CSI Pc ; Pt ; Pl ; Pb ; Pr $ x`
+///
+/// Fill a rectangular area with a specified character.
+///
+/// Fills the rectangular area defined by `area` with the character specified
+/// by `character` (a decimal ASCII code). The fill operation respects the
+/// current character protection attribute (DECSCA).
+///
+/// # Parameters
+///
+/// - `character`: ASCII code of the character to fill with (e.g., 32 for space)
+/// - `area`: The rectangular area to fill
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::FillRectangle;
+/// use vtio::event::Rect;
+/// use vtansi::AnsiEncode;
+///
+/// // Fill a 5x10 rectangle starting at row 1, column 1 with spaces (ASCII 32)
+/// let fill = FillRectangle {
+///     character: 32,
+///     area: Rect::new(1, 1, 5, 10),
+/// };
+/// let mut buf = Vec::new();
+/// fill.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[32;1;1;5;10$x");
+/// ```
+///
+/// # See Also
+///
+/// - [`EraseRectangle`] - Erase (blank) a rectangular area
+/// - [`SelectiveEraseRectangle`] - Selective erase respecting protection
+/// - <https://vt100.net/docs/vt510-rm/DECFRA.html>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "$", finalbyte = 'x')]
+pub struct FillRectangle {
+    /// ASCII code of the character to fill with.
+    pub character: u16,
+    /// The rectangular area to fill.
+    #[vtansi(flatten)]
+    pub area: Rect,
+}
+
+impl FillRectangle {
+    /// Create a new fill rectangle command.
+    #[must_use]
+    pub const fn new(character: u16, area: Rect) -> Self {
+        Self { character, area }
+    }
+}
+
+/// Erase Rectangular Area (`DECERA`).
+///
+/// *Sequence*: `CSI Pt ; Pl ; Pb ; Pr $ z`
+///
+/// Erase (fill with spaces) a rectangular area.
+///
+/// Erases the rectangular area by filling it with space characters using
+/// the current SGR attributes. This operation does not respect character
+/// protection (DECSCA).
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::EraseRectangle;
+/// use vtio::event::Rect;
+/// use vtansi::AnsiEncode;
+///
+/// // Erase a rectangle from row 1, col 1 to row 10, col 80
+/// let erase = EraseRectangle::new(Rect::new(1, 1, 10, 80));
+/// let mut buf = Vec::new();
+/// erase.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[1;1;10;80$z");
+/// ```
+///
+/// # See Also
+///
+/// - [`FillRectangle`] - Fill with a specific character
+/// - [`SelectiveEraseRectangle`] - Selective erase respecting protection
+/// - <https://vt100.net/docs/vt510-rm/DECERA.html>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "$", finalbyte = 'z')]
+pub struct EraseRectangle(
+    /// The rectangular area to erase.
+    #[vtansi(flatten)]
+    pub Rect,
+);
+
+impl EraseRectangle {
+    /// Create a new erase rectangle command.
+    #[must_use]
+    pub const fn new(area: Rect) -> Self {
+        Self(area)
+    }
+
+    /// Get the rectangular area.
+    #[must_use]
+    pub const fn area(&self) -> Rect {
+        self.0
+    }
+}
+
+/// Selective Erase Rectangular Area (`DECSERA`).
+///
+/// *Sequence*: `CSI Pt ; Pl ; Pb ; Pr $ {`
+///
+/// Selectively erase a rectangular area, respecting character protection.
+///
+/// Similar to [`EraseRectangle`], but only erases characters that are not
+/// protected by the character protection attribute (DECSCA). Protected
+/// characters within the rectangle are left unchanged.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::SelectiveEraseRectangle;
+/// use vtio::event::Rect;
+/// use vtansi::AnsiEncode;
+///
+/// // Selective erase a rectangle respecting character protection
+/// let erase = SelectiveEraseRectangle::new(Rect::new(5, 10, 20, 70));
+/// let mut buf = Vec::new();
+/// erase.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[5;10;20;70${");
+/// ```
+///
+/// # See Also
+///
+/// - [`EraseRectangle`] - Unconditional erase
+/// - [`FillRectangle`] - Fill with a specific character
+/// - <https://vt100.net/docs/vt510-rm/DECSERA.html>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "$", finalbyte = '{')]
+pub struct SelectiveEraseRectangle(
+    /// The rectangular area to selectively erase.
+    #[vtansi(flatten)]
+    pub Rect,
+);
+
+impl SelectiveEraseRectangle {
+    /// Create a new selective erase rectangle command.
+    #[must_use]
+    pub const fn new(area: Rect) -> Self {
+        Self(area)
+    }
+
+    /// Get the rectangular area.
+    #[must_use]
+    pub const fn area(&self) -> Rect {
+        self.0
+    }
+}
+
+/// Copy Rectangular Area (`DECCRA`).
+///
+/// *Sequence*: `CSI Pts ; Pls ; Pbs ; Prs ; Pps ; Ptd ; Pld ; Ppd $ v`
+///
+/// Copy a rectangular area from one location to another.
+///
+/// Copies the contents of the source rectangle to the destination location.
+/// The source and destination can be on different pages if the terminal
+/// supports multiple pages.
+///
+/// # Parameters
+///
+/// - `source`: The source rectangular area to copy from
+/// - `source_page`: The page number of the source (1-based, typically 1)
+/// - `dest_top`: Top line of the destination
+/// - `dest_left`: Left column of the destination
+/// - `dest_page`: The page number of the destination (1-based, typically 1)
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::CopyRectangle;
+/// use vtio::event::Rect;
+/// use vtansi::AnsiEncode;
+///
+/// // Copy rectangle from (1,1)-(10,20) to (15,1) on page 1
+/// let copy = CopyRectangle {
+///     source: Rect::new(1, 1, 10, 20),
+///     source_page: 1,
+///     dest: vtio::event::Coords::new(15, 1),
+///     dest_page: 1,
+/// };
+/// let mut buf = Vec::new();
+/// copy.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[1;1;10;20;1;15;1;1$v");
+/// ```
+///
+/// # See Also
+///
+/// - [`FillRectangle`] - Fill a rectangular area
+/// - [`EraseRectangle`] - Erase a rectangular area
+/// - <https://vt100.net/docs/vt510-rm/DECCRA.html>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "$", finalbyte = 'v')]
+pub struct CopyRectangle {
+    /// The source rectangular area.
+    #[vtansi(flatten)]
+    pub source: Rect,
+    /// Page number of the source (1-based).
+    pub source_page: u16,
+    /// Destination position (top-left corner).
+    #[vtansi(flatten)]
+    pub dest: Coords,
+    /// Page number of the destination (1-based).
+    pub dest_page: u16,
+}
+
+impl CopyRectangle {
+    /// Create a new copy rectangle command.
+    ///
+    /// Uses page 1 for both source and destination.
+    #[must_use]
+    pub const fn new(source: Rect, dest_top: u16, dest_left: u16) -> Self {
+        Self {
+            source,
+            source_page: 1,
+            dest: Coords::new(dest_top, dest_left),
+            dest_page: 1,
+        }
+    }
+
+    /// Create a new copy rectangle command with explicit page numbers.
+    #[must_use]
+    pub const fn with_pages(
+        source: Rect,
+        source_page: u16,
+        dest_top: u16,
+        dest_left: u16,
+        dest_page: u16,
+    ) -> Self {
+        Self {
+            source,
+            source_page,
+            dest: Coords::new(dest_top, dest_left),
+            dest_page,
+        }
+    }
+}
+
+/// Request Checksum of Rectangular Area (`DECRQCRA`).
+///
+/// *Sequence*: `CSI Pid ; Pp ; Pt ; Pl ; Pb ; Pr * y`
+///
+/// Request the terminal to compute and report a checksum of the characters
+/// in a rectangular area.
+///
+/// The terminal responds with a [`RectangularChecksumReport`] containing
+/// the computed checksum.
+///
+/// # Parameters
+///
+/// - `request_id`: An identifier that will be echoed in the response
+/// - `page`: Page number (1-based, typically 1)
+/// - `area`: The rectangular area to checksum
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::RequestRectangularChecksum;
+/// use vtio::event::Rect;
+/// use vtansi::AnsiEncode;
+///
+/// // Request checksum of entire screen (assuming 24x80)
+/// let request = RequestRectangularChecksum {
+///     request_id: 1,
+///     page: 1,
+///     area: Rect::new(1, 1, 24, 80),
+/// };
+/// let mut buf = Vec::new();
+/// request.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[1;1;1;1;24;80*y");
+/// ```
+///
+/// # See Also
+///
+/// - [`RectangularChecksumReport`] - Response from the terminal
+/// - <https://vt100.net/docs/vt510-rm/DECRQCRA.html>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "*", finalbyte = 'y')]
+pub struct RequestRectangularChecksum {
+    /// Request identifier (echoed in response).
+    pub request_id: u16,
+    /// Page number (1-based).
+    pub page: u16,
+    /// The rectangular area to checksum.
+    #[vtansi(flatten)]
+    pub area: Rect,
+}
+
+impl RequestRectangularChecksum {
+    /// Create a new checksum request.
+    #[must_use]
+    pub const fn new(request_id: u16, page: u16, area: Rect) -> Self {
+        Self {
+            request_id,
+            page,
+            area,
+        }
+    }
+}
+
+/// Rectangular Area Checksum Report (`DECCKSR`).
+///
+/// *Sequence*: `DCS Pid ! ~ D...D ST`
+///
+/// Response to [`RequestRectangularChecksum`] containing the computed
+/// checksum of the requested rectangular area.
+///
+/// # Parameters
+///
+/// - `request_id`: The identifier from the original request
+/// - `checksum`: The computed checksum as a 4-digit hexadecimal string
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::{RectangularChecksumReport, RectangularChecksumData};
+///
+/// // A typical response might look like:
+/// // DCS 1 ! ~ 3A2F ST
+/// let report = RectangularChecksumReport {
+///     request_id: 1,
+///     checksum: RectangularChecksumData(0x3A2F),
+/// };
+/// assert_eq!(report.request_id, 1);
+/// assert_eq!(report.checksum.0, 0x3A2F);
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestRectangularChecksum`] - Request this report
+/// - <https://vt100.net/docs/vt510-rm/DECCKSR.html>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiInput,
+)]
+#[vtansi(dcs, locate_all = "data", intermediate = "!", finalbyte = '~')]
+pub struct RectangularChecksumReport {
+    /// The request identifier from the original request.
+    pub request_id: u16,
+    /// The computed checksum.
+    pub checksum: RectangularChecksumData,
+}
+
+/// Wrapper for parsing and encoding the checksum data in [`RectangularChecksumReport`].
+///
+/// The checksum is transmitted as a 4-character hexadecimal string in the DCS data.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct RectangularChecksumData(pub u16);
+
+impl vtansi::parse::TryFromAnsi<'_> for RectangularChecksumData {
+    fn try_from_ansi(bytes: &[u8]) -> Result<Self, vtansi::ParseError> {
+        // The format is "Pid ! ~ XXXX" where XXXX is a 4-digit hex checksum
+        // By the time we get here, we just have the hex digits
+        if bytes.is_empty() {
+            return Ok(Self(0));
+        }
+
+        let hex_str = std::str::from_utf8(bytes).map_err(|_| {
+            vtansi::ParseError::InvalidValue(
+                "checksum must be valid UTF-8".to_string(),
+            )
+        })?;
+
+        let checksum = u16::from_str_radix(hex_str, 16).map_err(|_| {
+            vtansi::ParseError::InvalidValue(format!(
+                "invalid checksum hex value: {hex_str}"
+            ))
+        })?;
+
+        Ok(Self(checksum))
+    }
+}
+
+impl vtansi::encode::AnsiEncode for RectangularChecksumData {
+    fn encode_ansi_into<W: std::io::Write + ?Sized>(
+        &self,
+        writer: &mut W,
+    ) -> Result<usize, vtansi::EncodeError> {
+        // Encode as 4-digit uppercase hex
+        let hex = format!("{:04X}", self.0);
+        vtansi::encode::write_bytes_into(writer, hex.as_bytes())
+    }
+}
+
+impl From<u16> for RectangularChecksumData {
+    fn from(value: u16) -> Self {
+        Self(value)
+    }
+}
+
+impl From<RectangularChecksumData> for u16 {
+    fn from(value: RectangularChecksumData) -> Self {
+        value.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use vtansi::AnsiEncode;
+
+    // =========================================================================
+    // Rectangular Area Tests
+    // =========================================================================
+
+    #[test]
+    fn test_fill_rectangle_encoding() {
+        let fill = FillRectangle {
+            character: 32, // space
+            area: Rect::new(1, 1, 10, 80),
+        };
+        assert_eq!(fill.encode_ansi().unwrap(), b"\x1b[32;1;1;10;80$x");
+    }
+
+    #[test]
+    fn test_fill_rectangle_new() {
+        let area = Rect::new(5, 10, 15, 70);
+        let fill = FillRectangle::new(u16::from(b'#'), area);
+        assert_eq!(fill.character, 35);
+        assert_eq!(fill.area, area);
+    }
+
+    #[test]
+    fn test_erase_rectangle_encoding() {
+        let erase = EraseRectangle(Rect::new(1, 1, 24, 80));
+        assert_eq!(erase.encode_ansi().unwrap(), b"\x1b[1;1;24;80$z");
+    }
+
+    #[test]
+    fn test_erase_rectangle_new() {
+        let area = Rect::new(1, 1, 10, 20);
+        let erase = EraseRectangle::new(area);
+        assert_eq!(erase.area(), area);
+    }
+
+    #[test]
+    fn test_selective_erase_rectangle_encoding() {
+        let erase = SelectiveEraseRectangle(Rect::new(5, 10, 15, 70));
+        assert_eq!(erase.encode_ansi().unwrap(), b"\x1b[5;10;15;70${");
+    }
+
+    #[test]
+    fn test_selective_erase_rectangle_new() {
+        let area = Rect::new(2, 3, 8, 9);
+        let erase = SelectiveEraseRectangle::new(area);
+        assert_eq!(erase.area(), area);
+    }
+
+    #[test]
+    fn test_copy_rectangle_encoding() {
+        let copy = CopyRectangle {
+            source: Rect::new(1, 1, 10, 20),
+            source_page: 1,
+            dest: Coords::new(15, 1),
+            dest_page: 1,
+        };
+        assert_eq!(copy.encode_ansi().unwrap(), b"\x1b[1;1;10;20;1;15;1;1$v");
+    }
+
+    #[test]
+    fn test_copy_rectangle_new() {
+        let source = Rect::new(1, 1, 10, 20);
+        let copy = CopyRectangle::new(source, 15, 5);
+        assert_eq!(copy.source, source);
+        assert_eq!(copy.dest, Coords::new(15, 5));
+        assert_eq!(copy.source_page, 1);
+        assert_eq!(copy.dest_page, 1);
+    }
+
+    #[test]
+    fn test_copy_rectangle_with_pages() {
+        let source = Rect::new(1, 1, 10, 20);
+        let copy = CopyRectangle::with_pages(source, 2, 15, 5, 3);
+        assert_eq!(copy.source_page, 2);
+        assert_eq!(copy.dest_page, 3);
+    }
+
+    #[test]
+    fn test_request_rectangular_checksum_encoding() {
+        let request = RequestRectangularChecksum {
+            request_id: 42,
+            page: 1,
+            area: Rect::new(1, 1, 24, 80),
+        };
+        assert_eq!(request.encode_ansi().unwrap(), b"\x1b[42;1;1;1;24;80*y");
+    }
+
+    #[test]
+    fn test_request_rectangular_checksum_new() {
+        let area = Rect::new(1, 1, 24, 80);
+        let request = RequestRectangularChecksum::new(1, 1, area);
+        assert_eq!(request.request_id, 1);
+        assert_eq!(request.page, 1);
+        assert_eq!(request.area, area);
+    }
+
+    #[test]
+    fn test_rectangular_checksum_data_encoding() {
+        use vtansi::AnsiEncode;
+
+        let data = RectangularChecksumData(0x3A2F);
+        let mut buf = Vec::new();
+        data.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(&buf, b"3A2F");
+
+        // Test zero padding
+        let data = RectangularChecksumData(0x00FF);
+        let mut buf = Vec::new();
+        data.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(&buf, b"00FF");
+    }
+
+    #[test]
+    fn test_rectangular_checksum_data_parsing() {
+        use vtansi::parse::TryFromAnsi;
+
+        let data = RectangularChecksumData::try_from_ansi(b"3A2F").unwrap();
+        assert_eq!(data.0, 0x3A2F);
+
+        let data = RectangularChecksumData::try_from_ansi(b"00FF").unwrap();
+        assert_eq!(data.0, 0x00FF);
+
+        let data = RectangularChecksumData::try_from_ansi(b"").unwrap();
+        assert_eq!(data.0, 0);
+    }
+
+    #[test]
+    fn test_rectangular_checksum_data_conversion() {
+        let data: RectangularChecksumData = 0x1234u16.into();
+        assert_eq!(data.0, 0x1234);
+
+        let value: u16 = data.into();
+        assert_eq!(value, 0x1234);
+    }
+
+    // =========================================================================
+    // Original Tests
+    // =========================================================================
 
     #[test]
     fn test_insert_character_encoding() {
