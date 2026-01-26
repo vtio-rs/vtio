@@ -48,6 +48,10 @@
 //! | `OSC 17 ; Pt ST` | [`color::HighlightBackgroundColorResponse`], [`color::RequestOrSetHighlightBackgroundColor`] |
 //! | `OSC 18 ; Pt ST` | [`color::TektronixCursorColorResponse`], [`color::RequestOrSetTektronixCursorColor`] |
 //! | `OSC 19 ; Pt ST` | [`color::HighlightForegroundColorResponse`], [`color::RequestOrSetHighlightForegroundColor`] |
+//! | `CSI # P` or `CSI Pm # P` | [`color::PushPaletteColors`] |
+//! | `CSI # Q` or `CSI Pm # Q` | [`color::PopPaletteColors`] |
+//! | `CSI # R` | [`color::ReportPaletteColors`] |
+//! | `CSI Ps # Q` (response) | [`color::PaletteColorsReport`] |
 //!
 //! ## cursor
 //!
@@ -239,6 +243,8 @@
 //! | Sequence | Struct |
 //! |----------|--------|
 //! | `CSI Pm m` | [`sgr::Sgr`], [`sgr::LegacySgr`] |
+//! | `CSI # {` or `CSI Pm # {` | [`sgr::PushVideoAttributes`] |
+//! | `CSI # }` | [`sgr::PopVideoAttributes`] |
 //!
 //! ## shell
 //!

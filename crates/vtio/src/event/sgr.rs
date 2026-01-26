@@ -1,7 +1,7 @@
 //! SGR (Select Graphic Rendition) sequences.
 use std::io::Write;
 
-use vtansi::{ParseError, TryFromAnsi, TryFromAnsiIter, write_csi};
+use vtansi::{ParseError, TryFromAnsi, TryFromAnsiIter, bitflags, write_csi};
 
 // =============================================================================
 // Basic ANSI Colors
@@ -2510,6 +2510,171 @@ impl vtansi::AnsiEncode for LegacySgr {
 }
 
 // =============================================================================
+// SGR Video Attribute Stack (XTPUSHSGR/XTPOPSGR)
+// =============================================================================
+
+bitflags! {
+    /// Attributes that can be selectively pushed to the video attribute stack.
+    ///
+    /// When pushing video attributes with [`PushVideoAttributes`], you can specify
+    /// which attributes to save. If no attributes are specified (empty flags),
+    /// all current SGR attributes are saved.
+    ///
+    /// These flags correspond to the parameter values for `CSI Pm # {`:
+    ///
+    /// | Value | Attribute |
+    /// |-------|-----------|
+    /// | 1 | Bold/faint |
+    /// | 2 | Underline |
+    /// | 4 | Blink |
+    /// | 8 | Inverse |
+    /// | 16 | Invisible |
+    /// | 32 | Foreground color |
+    /// | 64 | Background color |
+    /// | 128 | Underline color |
+    /// | 256 | Strikethrough |
+    /// | 512 | Overline |
+    /// | 1024 | Font |
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use vtio::event::sgr::{PushVideoAttributes, SgrStackAttribute};
+    ///
+    /// // Push only foreground and background colors
+    /// let push = PushVideoAttributes::selective(
+    ///     SgrStackAttribute::FOREGROUND | SgrStackAttribute::BACKGROUND
+    /// );
+    /// ```
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(transparent))]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+    pub struct SgrStackAttribute: u16 {
+        /// Bold and faint intensity attributes.
+        const BOLD_FAINT = 1;
+        /// Underline attribute.
+        const UNDERLINE = 2;
+        /// Blink attribute.
+        const BLINK = 4;
+        /// Inverse/reverse video attribute.
+        const INVERSE = 8;
+        /// Invisible/hidden attribute.
+        const INVISIBLE = 16;
+        /// Foreground color.
+        const FOREGROUND = 32;
+        /// Background color.
+        const BACKGROUND = 64;
+        /// Underline color.
+        const UNDERLINE_COLOR = 128;
+        /// Strikethrough attribute.
+        const STRIKETHROUGH = 256;
+        /// Overline attribute.
+        const OVERLINE = 512;
+        /// Font selection.
+        const FONT = 1024;
+    }
+}
+
+/// Push video attributes onto the stack (`XTPUSHSGR`).
+///
+/// *Sequence*: `CSI Pm # {`
+///
+/// Push the current SGR attributes onto an internal stack. If specific
+/// attributes are provided via the parameter, only those attributes are saved.
+/// If no parameters are given, all attributes are saved.
+///
+/// The stack has a maximum depth of 10 levels in xterm. Pushing beyond this
+/// limit may cause older entries to be lost.
+///
+/// Use [`PopVideoAttributes`] to restore the saved attributes.
+///
+/// # Parameters
+///
+/// The `attributes` field specifies which attributes to push. See
+/// [`SgrStackAttribute`] for the available flags. If `None` (default),
+/// all attributes are pushed.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::sgr::{PushVideoAttributes, SgrStackAttribute};
+/// use vtansi::AnsiEncode;
+///
+/// // Push all attributes
+/// let push_all = PushVideoAttributes::all();
+/// let mut buf = Vec::new();
+/// push_all.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[#{");
+///
+/// // Push only colors
+/// let push_colors = PushVideoAttributes::selective(
+///     SgrStackAttribute::FOREGROUND | SgrStackAttribute::BACKGROUND
+/// );
+/// let mut buf = Vec::new();
+/// push_colors.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[96#{");
+/// ```
+///
+/// # See Also
+///
+/// - [`PopVideoAttributes`] - Restore saved attributes
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Functions-using-CSI-_-which-begin-with-CSI>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = '{')]
+pub struct PushVideoAttributes {
+    /// Which attributes to push. `None` means push all attributes.
+    pub attributes: Option<SgrStackAttribute>,
+}
+
+impl PushVideoAttributes {
+    /// Create a push command for all attributes.
+    #[must_use]
+    pub const fn all() -> Self {
+        Self { attributes: None }
+    }
+
+    /// Create a push command for specific attributes.
+    #[must_use]
+    pub const fn selective(attributes: SgrStackAttribute) -> Self {
+        Self {
+            attributes: Some(attributes),
+        }
+    }
+}
+
+/// Pop video attributes from the stack (`XTPOPSGR`).
+///
+/// *Sequence*: `CSI # }` or `CSI # q`
+///
+/// Pop and restore SGR attributes from the internal stack. The attributes
+/// that were saved by the most recent [`PushVideoAttributes`] are restored.
+///
+/// If the stack is empty, this command has no effect.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::sgr::PopVideoAttributes;
+/// use vtansi::AnsiEncode;
+///
+/// let pop = PopVideoAttributes;
+/// let mut buf = Vec::new();
+/// pop.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[#}");
+/// ```
+///
+/// # See Also
+///
+/// - [`PushVideoAttributes`] - Save attributes to stack
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Functions-using-CSI-_-which-begin-with-CSI>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = '}')]
+pub struct PopVideoAttributes;
+
+// =============================================================================
 // Tests
 // =============================================================================
 
@@ -3884,5 +4049,93 @@ mod tests {
         let mut buf = Vec::new();
         sgr.encode_ansi_into(&mut buf).unwrap();
         assert_eq!(buf, b"\x1b[0m");
+    }
+
+    // =========================================================================
+    // SGR Video Attribute Stack (XTPUSHSGR/XTPOPSGR) tests
+    // =========================================================================
+
+    #[test]
+    fn test_push_video_attributes_all() {
+        let push = PushVideoAttributes::all();
+        assert_eq!(push.attributes, None);
+        let mut buf = Vec::new();
+        push.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(&buf, b"\x1b[#{");
+    }
+
+    #[test]
+    fn test_push_video_attributes_selective_single() {
+        let push =
+            PushVideoAttributes::selective(SgrStackAttribute::FOREGROUND);
+        assert_eq!(push.attributes, Some(SgrStackAttribute::FOREGROUND));
+        let mut buf = Vec::new();
+        push.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(&buf, b"\x1b[32#{");
+    }
+
+    #[test]
+    fn test_push_video_attributes_selective_multiple() {
+        let push = PushVideoAttributes::selective(
+            SgrStackAttribute::FOREGROUND | SgrStackAttribute::BACKGROUND,
+        );
+        let mut buf = Vec::new();
+        push.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(&buf, b"\x1b[96#{");
+    }
+
+    #[test]
+    fn test_push_video_attributes_selective_all_colors() {
+        let push = PushVideoAttributes::selective(
+            SgrStackAttribute::FOREGROUND
+                | SgrStackAttribute::BACKGROUND
+                | SgrStackAttribute::UNDERLINE_COLOR,
+        );
+        let mut buf = Vec::new();
+        push.encode_ansi_into(&mut buf).unwrap();
+        // 32 + 64 + 128 = 224
+        assert_eq!(&buf, b"\x1b[224#{");
+    }
+
+    #[test]
+    fn test_pop_video_attributes() {
+        let pop = PopVideoAttributes;
+        let mut buf = Vec::new();
+        pop.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(&buf, b"\x1b[#}");
+    }
+
+    #[test]
+    fn test_sgr_stack_attribute_default() {
+        let attr = SgrStackAttribute::default();
+        assert!(attr.is_empty());
+        assert_eq!(attr.bits(), 0);
+    }
+
+    #[test]
+    fn test_sgr_stack_attribute_contains() {
+        let colors =
+            SgrStackAttribute::FOREGROUND | SgrStackAttribute::BACKGROUND;
+        assert!(colors.contains(SgrStackAttribute::FOREGROUND));
+        assert!(colors.contains(SgrStackAttribute::BACKGROUND));
+        assert!(!colors.contains(SgrStackAttribute::UNDERLINE));
+    }
+
+    #[test]
+    fn test_sgr_stack_attribute_bitwise_ops() {
+        let mut attr = SgrStackAttribute::BOLD_FAINT;
+        attr |= SgrStackAttribute::UNDERLINE;
+        assert!(attr.contains(SgrStackAttribute::BOLD_FAINT));
+        assert!(attr.contains(SgrStackAttribute::UNDERLINE));
+        assert_eq!(attr.bits(), 3);
+
+        let masked = attr & SgrStackAttribute::BOLD_FAINT;
+        assert_eq!(masked.bits(), 1);
+    }
+
+    #[test]
+    fn test_push_video_attributes_default() {
+        let push = PushVideoAttributes::default();
+        assert_eq!(push.attributes, None);
     }
 }

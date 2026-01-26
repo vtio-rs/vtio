@@ -855,6 +855,205 @@ impl RequestOrSetHighlightForegroundColor {
     }
 }
 
+// =============================================================================
+// Palette Color Stack (XTPUSHCOLORS/XTPOPCOLORS/XTREPORTCOLORS)
+// =============================================================================
+
+/// Push palette colors onto the stack (`XTPUSHCOLORS`).
+///
+/// *Sequence*: `CSI Pm # P`
+///
+/// Push the current color palette onto an internal stack. This allows saving
+/// the palette state before making temporary changes, which can later be
+/// restored with [`PopPaletteColors`].
+///
+/// # Parameters
+///
+/// The optional `position` parameter specifies a specific stack position to
+/// push to:
+/// - `None`: Push to the next available position (default behavior)
+/// - `Some(1..=10)`: Push to a specific stack position
+///
+/// The stack has a maximum depth of 10 levels. Pushing beyond this limit
+/// may cause older entries to be lost.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::PushPaletteColors;
+/// use vtansi::AnsiEncode;
+///
+/// // Push to next available position
+/// let push = PushPaletteColors::new();
+/// let mut buf = Vec::new();
+/// push.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[#P");
+///
+/// // Push to specific position
+/// let push = PushPaletteColors::at_position(5);
+/// let mut buf = Vec::new();
+/// push.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[5#P");
+/// ```
+///
+/// # See Also
+///
+/// - [`PopPaletteColors`] - Restore saved palette
+/// - [`ReportPaletteColors`] - Query stack state
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Functions-using-CSI-_-which-begin-with-CSI>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = 'P')]
+pub struct PushPaletteColors {
+    /// Stack position to push to. `None` means next available.
+    pub position: Option<u16>,
+}
+
+impl PushPaletteColors {
+    /// Create a push command for the next available stack position.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { position: None }
+    }
+
+    /// Create a push command for a specific stack position.
+    ///
+    /// Valid positions are 1-10.
+    #[must_use]
+    pub const fn at_position(position: u16) -> Self {
+        Self {
+            position: Some(position),
+        }
+    }
+}
+
+/// Pop palette colors from the stack (`XTPOPCOLORS`).
+///
+/// *Sequence*: `CSI Pm # Q`
+///
+/// Pop and restore the color palette from the internal stack. The palette
+/// that was saved by a previous [`PushPaletteColors`] is restored.
+///
+/// # Parameters
+///
+/// The optional `position` parameter specifies a specific stack position to
+/// pop from:
+/// - `None`: Pop from the most recent position (default behavior)
+/// - `Some(1..=10)`: Pop from a specific stack position
+///
+/// If the stack is empty or the specified position has no saved palette,
+/// this command has no effect.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::PopPaletteColors;
+/// use vtansi::AnsiEncode;
+///
+/// // Pop from most recent position
+/// let pop = PopPaletteColors::new();
+/// let mut buf = Vec::new();
+/// pop.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[#Q");
+///
+/// // Pop from specific position
+/// let pop = PopPaletteColors::at_position(3);
+/// let mut buf = Vec::new();
+/// pop.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[3#Q");
+/// ```
+///
+/// # See Also
+///
+/// - [`PushPaletteColors`] - Save palette to stack
+/// - [`ReportPaletteColors`] - Query stack state
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Functions-using-CSI-_-which-begin-with-CSI>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = 'Q')]
+pub struct PopPaletteColors {
+    /// Stack position to pop from. `None` means most recent.
+    pub position: Option<u16>,
+}
+
+impl PopPaletteColors {
+    /// Create a pop command for the most recent stack position.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { position: None }
+    }
+
+    /// Create a pop command for a specific stack position.
+    ///
+    /// Valid positions are 1-10.
+    #[must_use]
+    pub const fn at_position(position: u16) -> Self {
+        Self {
+            position: Some(position),
+        }
+    }
+}
+
+/// Report palette color stack state (`XTREPORTCOLORS`).
+///
+/// *Sequence*: `CSI # R`
+///
+/// Request a report of the current palette color stack state. The terminal
+/// responds with a [`PaletteColorsReport`] indicating the current stack
+/// position.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ReportPaletteColors;
+/// use vtansi::AnsiEncode;
+///
+/// let report = ReportPaletteColors;
+/// let mut buf = Vec::new();
+/// report.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[#R");
+/// ```
+///
+/// # See Also
+///
+/// - [`PushPaletteColors`] - Save palette to stack
+/// - [`PopPaletteColors`] - Restore palette from stack
+/// - [`PaletteColorsReport`] - Response from the terminal
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Functions-using-CSI-_-which-begin-with-CSI>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = 'R')]
+pub struct ReportPaletteColors;
+
+/// Palette color stack report response.
+///
+/// *Sequence*: `CSI Ps # Q`
+///
+/// Response to [`ReportPaletteColors`] indicating the current stack position.
+/// The `position` field contains the current top of the stack (1-10), or 0
+/// if the stack is empty.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::PaletteColorsReport;
+///
+/// // Create a report indicating position 3
+/// let report = PaletteColorsReport { position: 3 };
+/// assert_eq!(report.position, 3);
+/// ```
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = 'Q')]
+pub struct PaletteColorsReport {
+    /// Current stack position (0 = empty, 1-10 = position).
+    pub position: u16,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1304,5 +1503,83 @@ mod tests {
         let request = RequestOrSetHighlightForegroundColor::set(&color);
         let encoded = request.encode_ansi().unwrap();
         assert_eq!(encoded, b"\x1b]19;rgb:dddd/eeee/ffff\x1b\\");
+    }
+
+    // =========================================================================
+    // Palette Color Stack (XTPUSHCOLORS/XTPOPCOLORS/XTREPORTCOLORS) tests
+    // =========================================================================
+
+    #[test]
+    fn test_push_palette_colors_default() {
+        let push = PushPaletteColors::new();
+        let encoded = push.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b[#P");
+    }
+
+    #[test]
+    fn test_push_palette_colors_at_position() {
+        let push = PushPaletteColors::at_position(5);
+        let encoded = push.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b[5#P");
+    }
+
+    #[test]
+    fn test_push_palette_colors_position_zero() {
+        let push = PushPaletteColors::at_position(0);
+        let encoded = push.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b[0#P");
+    }
+
+    #[test]
+    fn test_push_palette_colors_position_ten() {
+        let push = PushPaletteColors::at_position(10);
+        let encoded = push.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b[10#P");
+    }
+
+    #[test]
+    fn test_pop_palette_colors_default() {
+        let pop = PopPaletteColors::new();
+        let encoded = pop.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b[#Q");
+    }
+
+    #[test]
+    fn test_pop_palette_colors_at_position() {
+        let pop = PopPaletteColors::at_position(3);
+        let encoded = pop.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b[3#Q");
+    }
+
+    #[test]
+    fn test_pop_palette_colors_position_zero() {
+        let pop = PopPaletteColors::at_position(0);
+        let encoded = pop.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b[0#Q");
+    }
+
+    #[test]
+    fn test_report_palette_colors() {
+        let report = ReportPaletteColors;
+        let encoded = report.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b[#R");
+    }
+
+    #[test]
+    fn test_palette_colors_report_default() {
+        let report = PaletteColorsReport::default();
+        assert_eq!(report.position, 0);
+    }
+
+    #[test]
+    fn test_push_palette_colors_default_trait() {
+        let push = PushPaletteColors::default();
+        assert_eq!(push.position, None);
+    }
+
+    #[test]
+    fn test_pop_palette_colors_default_trait() {
+        let pop = PopPaletteColors::default();
+        assert_eq!(pop.position, None);
     }
 }
