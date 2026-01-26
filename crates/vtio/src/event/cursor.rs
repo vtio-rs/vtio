@@ -2039,4 +2039,56 @@ mod tests {
 
         assert_eq!(encoded, "\x1b[1;1f");
     }
+
+    #[test]
+    fn test_save_cursor_visibility_encoding() {
+        // Test that terminal_mode! macro generates SaveCursorVisibility
+        // CSI ? 25 s
+        let save = SaveCursorVisibility;
+
+        let mut buf = Vec::new();
+        save.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        assert_eq!(encoded, "\x1b[?25s");
+    }
+
+    #[test]
+    fn test_restore_cursor_visibility_encoding() {
+        // Test that terminal_mode! macro generates RestoreCursorVisibility
+        // CSI ? 25 r
+        let restore = RestoreCursorVisibility;
+
+        let mut buf = Vec::new();
+        restore.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        assert_eq!(encoded, "\x1b[?25r");
+    }
+
+    #[test]
+    fn test_save_relative_cursor_origin_mode_encoding() {
+        // Test that terminal_mode! macro generates SaveRelativeCursorOriginMode
+        // CSI ? 6 s
+        let save = SaveRelativeCursorOriginMode;
+
+        let mut buf = Vec::new();
+        save.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        assert_eq!(encoded, "\x1b[?6s");
+    }
+
+    #[test]
+    fn test_restore_relative_cursor_origin_mode_encoding() {
+        // Test that terminal_mode! macro generates RestoreRelativeCursorOriginMode
+        // CSI ? 6 r
+        let restore = RestoreRelativeCursorOriginMode;
+
+        let mut buf = Vec::new();
+        restore.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        assert_eq!(encoded, "\x1b[?6r");
+    }
 }
