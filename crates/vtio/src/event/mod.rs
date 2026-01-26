@@ -182,6 +182,11 @@
 //! | `CSI < u` | [`keyboard::PopKeyboardEnhancementFlags`] |
 //! | `ESC =` | [`keyboard::SetApplicationKeypadMode`] |
 //! | `ESC >` | [`keyboard::ResetApplicationKeypadMode`] |
+//! | `CSI > Pp ; Pv m` | [`keyboard::SetXTermKeyModifierOptions`] |
+//! | `CSI > Ps n` | [`keyboard::DisableXTermKeyModifierOptions`] |
+//! | `CSI > Pp ; Pv f` | [`keyboard::SetXTermKeyFormatOptions`] |
+//! | `CSI ? Pp g` | [`keyboard::QueryXTermKeyFormatOptions`] |
+//! | `CSI > Pp ; Pv f` (response) | [`keyboard::XTermKeyFormatOptionsResponse`] |
 //! | `CSI Ps ; Pm ~` | [`keyboard::KeyEvent`] |
 //! | `CSI Ps ; Pm u` | [`keyboard::KeyEvent`] |
 //! | `CSI A` / `CSI B` / `CSI C` / `CSI D` / `CSI F` / `CSI H` / `CSI P` / `CSI Q` / `CSI R` / `CSI S` / `CSI Z` | [`keyboard::KeyEvent`] |

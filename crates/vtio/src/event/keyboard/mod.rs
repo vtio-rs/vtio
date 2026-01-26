@@ -11,10 +11,13 @@ pub use encoding::{bytes_to_events, get_key_event_encoding};
 pub use event::{KeyEvent, KeyEventBuilder};
 pub use keycode::{KeyCode, MediaKeyCode};
 pub use mode::{
-    KeyboardEnhancementFlags, KeyboardEnhancementFlagsQuery,
-    KeyboardEnhancementFlagsResponse, PopKeyboardEnhancementFlags,
-    PushKeyboardEnhancementFlags, ResetApplicationKeypadMode,
+    DisableXTermKeyModifierOptions, KeyboardEnhancementFlags,
+    KeyboardEnhancementFlagsQuery, KeyboardEnhancementFlagsResponse,
+    PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
+    QueryXTermKeyFormatOptions, ResetApplicationKeypadMode,
     SetApplicationKeypadMode, SetKeyboardEnhancementFlags,
+    SetXTermKeyFormatOptions, SetXTermKeyModifierOptions, XTermKeyFormatOption,
+    XTermKeyFormatOptionsResponse, XTermModifierKeyResource,
 };
 pub use modifier::{
     KeyEventKind, KeyEventState, KeyModifiers, ModifierKeyCode,
