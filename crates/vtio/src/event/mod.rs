@@ -334,6 +334,10 @@
 //! | `CSI 4 ; Ps ; Ps t` | [`window::WindowSizePixelsReport`] |
 //! | `CSI 5 ; Ps ; Ps t` | [`window::ScreenSizePixelsReport`] |
 //! | `CSI 6 ; Ps ; Ps t` | [`window::CellSizePixelsReport`] |
+//! | `CSI > Pm t` | [`window::SetTitleModeFeatures`] |
+//! | `CSI > Pm T` | [`window::ResetTitleModeFeatures`] |
+//! | `CSI # S` | [`window::ReportTitleStackPosition`] |
+//! | `CSI Ps # S` | [`window::TitleStackPositionReport`] |
 
 pub mod charset;
 pub mod clipboard;

@@ -1,5 +1,7 @@
 //! Window control commands.
 
+use vtansi::bitflags;
+
 /// Title stack target.
 ///
 /// Specifies which title(s) to push or pop from the stack.
@@ -709,6 +711,165 @@ pub struct ScreenSizeReport {
     pub cols: u16,
 }
 
+// ============================================================================
+// Title Mode Features (XTSMTITLE / XTRMTITLE)
+// ============================================================================
+
+bitflags! {
+    /// Title mode features for controlling how xterm interprets title sequences.
+    ///
+    /// These flags control how OSC 0, 1, and 2 title-setting sequences are
+    /// interpreted and how title queries respond.
+    ///
+    /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for
+    /// more information on xterm's title mode features.
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(transparent))]
+    #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Copy, Hash, Default)]
+    pub struct TitleModeFeatures: u8 {
+        /// Set window/icon labels using hexadecimal encoding.
+        ///
+        /// When set, title strings in OSC sequences are interpreted as
+        /// hexadecimal-encoded bytes.
+        const SET_HEX = 0b0001;
+
+        /// Query window/icon labels using hexadecimal encoding.
+        ///
+        /// When set, title query responses use hexadecimal encoding.
+        const QUERY_HEX = 0b0010;
+
+        /// Set window/icon labels using UTF-8 encoding.
+        ///
+        /// When set, title strings are interpreted as UTF-8.
+        /// This overrides [`SET_HEX`](Self::SET_HEX) if both are set.
+        const SET_UTF8 = 0b0100;
+
+        /// Query window/icon labels using UTF-8 encoding.
+        ///
+        /// When set, title query responses use UTF-8 encoding.
+        /// This overrides [`QUERY_HEX`](Self::QUERY_HEX) if both are set.
+        const QUERY_UTF8 = 0b1000;
+    }
+}
+
+/// Set title mode features (`XTSMTITLE`).
+///
+/// *Sequence*: `CSI > Pm t`
+///
+/// Set one or more title mode flags that control how xterm interprets
+/// OSC 0, 1, and 2 title-setting sequences. Multiple parameters can be
+/// specified to set multiple modes at once.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::window::{SetTitleModeFeatures, TitleModeFeatures};
+/// use vtansi::AnsiEncode;
+///
+/// // Enable UTF-8 encoding for setting titles
+/// let cmd = SetTitleModeFeatures(TitleModeFeatures::SET_UTF8);
+/// let mut buf = Vec::new();
+/// cmd.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(buf, b"\x1b[>4t");
+/// ```
+///
+/// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for
+/// more information.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, private = '>', finalbyte = 't')]
+pub struct SetTitleModeFeatures(pub TitleModeFeatures);
+
+/// Reset title mode features (`XTRMTITLE`).
+///
+/// *Sequence*: `CSI > Pm T`
+///
+/// Reset one or more title mode flags that control how xterm interprets
+/// OSC 0, 1, and 2 title-setting sequences. Multiple parameters can be
+/// specified to reset multiple modes at once.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::window::{ResetTitleModeFeatures, TitleModeFeatures};
+/// use vtansi::AnsiEncode;
+///
+/// // Disable UTF-8 encoding for setting titles
+/// let cmd = ResetTitleModeFeatures(TitleModeFeatures::SET_UTF8);
+/// let mut buf = Vec::new();
+/// cmd.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(buf, b"\x1b[>4T");
+/// ```
+///
+/// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for
+/// more information.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, private = '>', finalbyte = 'T')]
+pub struct ResetTitleModeFeatures(pub TitleModeFeatures);
+
+/// Report title stack position (`XTTITLEPOS`).
+///
+/// *Sequence*: `CSI # S`
+///
+/// Request the current position on the title stack. The terminal responds
+/// with [`TitleStackPositionReport`].
+///
+/// The title stack is used by [`PushTitle`] and [`PopTitle`] to save and
+/// restore window titles.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::window::ReportTitleStackPosition;
+/// use vtansi::StaticAnsiEncode;
+///
+/// assert_eq!(ReportTitleStackPosition::BYTES, b"\x1b[#S");
+/// ```
+///
+/// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for
+/// more information.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = 'S')]
+pub struct ReportTitleStackPosition;
+
+/// Title stack position report.
+///
+/// *Sequence*: `CSI Ps # S`
+///
+/// Response to [`ReportTitleStackPosition`] request.
+///
+/// The position value indicates:
+/// - `0`: The stack is empty
+/// - `1-10`: Current position on the stack (1 is the first pushed entry)
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::window::TitleStackPositionReport;
+/// use vtansi::AnsiEncode;
+///
+/// // Create a report indicating position 3 on the stack
+/// let report = TitleStackPositionReport { position: 3 };
+/// let mut buf = Vec::new();
+/// report.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(buf, b"\x1b[3#S");
+/// ```
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = 'S')]
+pub struct TitleStackPositionReport {
+    /// Current position on the title stack.
+    ///
+    /// - `0`: The stack is empty
+    /// - `1-10`: Current position on the stack
+    pub position: u8,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -997,5 +1158,82 @@ mod tests {
         let mut buf = Vec::new();
         report.encode_ansi_into(&mut buf).unwrap();
         assert_eq!(String::from_utf8(buf).unwrap(), "\x1b[9;40;160t");
+    }
+
+    // ========================================================================
+    // Title Mode Features Tests
+    // ========================================================================
+
+    #[test]
+    fn test_set_title_mode_features_utf8() {
+        let cmd = SetTitleModeFeatures(TitleModeFeatures::SET_UTF8);
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(String::from_utf8(buf).unwrap(), "\x1b[>4t");
+    }
+
+    #[test]
+    fn test_set_title_mode_features_hex() {
+        let cmd = SetTitleModeFeatures(TitleModeFeatures::SET_HEX);
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(String::from_utf8(buf).unwrap(), "\x1b[>1t");
+    }
+
+    #[test]
+    fn test_set_title_mode_features_query_utf8() {
+        let cmd = SetTitleModeFeatures(TitleModeFeatures::QUERY_UTF8);
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(String::from_utf8(buf).unwrap(), "\x1b[>8t");
+    }
+
+    #[test]
+    fn test_set_title_mode_features_combined() {
+        let cmd = SetTitleModeFeatures(
+            TitleModeFeatures::SET_UTF8 | TitleModeFeatures::QUERY_UTF8,
+        );
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(String::from_utf8(buf).unwrap(), "\x1b[>12t");
+    }
+
+    #[test]
+    fn test_reset_title_mode_features_utf8() {
+        let cmd = ResetTitleModeFeatures(TitleModeFeatures::SET_UTF8);
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(String::from_utf8(buf).unwrap(), "\x1b[>4T");
+    }
+
+    #[test]
+    fn test_reset_title_mode_features_hex() {
+        let cmd = ResetTitleModeFeatures(TitleModeFeatures::SET_HEX);
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        assert_eq!(String::from_utf8(buf).unwrap(), "\x1b[>1T");
+    }
+
+    #[test]
+    fn test_report_title_stack_position() {
+        assert_eq!(ReportTitleStackPosition::BYTES, b"\x1b[#S");
+    }
+
+    #[test]
+    fn test_title_stack_position_report_encoding() {
+        let report = TitleStackPositionReport { position: 3 };
+        let mut buf = Vec::new();
+        report.encode_ansi_into(&mut buf).unwrap();
+        // CSI parameters come before intermediate characters
+        assert_eq!(String::from_utf8(buf).unwrap(), "\x1b[3#S");
+    }
+
+    #[test]
+    fn test_title_stack_position_report_empty() {
+        let report = TitleStackPositionReport { position: 0 };
+        let mut buf = Vec::new();
+        report.encode_ansi_into(&mut buf).unwrap();
+        // CSI parameters come before intermediate characters
+        assert_eq!(String::from_utf8(buf).unwrap(), "\x1b[0#S");
     }
 }
