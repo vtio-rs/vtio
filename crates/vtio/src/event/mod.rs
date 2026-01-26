@@ -77,6 +77,8 @@
 //! | `CSI Ps E` | [`cursor::CursorNextLine`] |
 //! | `CSI Ps F` | [`cursor::CursorPreviousLine`] |
 //! | `CSI Ps G` | [`cursor::CursorHorizontalAbsolute`] |
+//! | `CSI Ps `` ` | [`cursor::CharacterPositionAbsolute`] |
+//! | `CSI Ps ; Ps f` | [`cursor::HorizontalVerticalPosition`] |
 //! | `CSI Ps I` | [`cursor::CursorHorizontalForwardTab`] |
 //! | `CSI Ps Z` | [`cursor::CursorHorizontalBackwardTab`] |
 //! | `CSI Ps a` | [`cursor::CursorHorizontalRelative`] |

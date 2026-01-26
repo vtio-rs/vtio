@@ -848,6 +848,86 @@ pub struct CursorPreviousLine(pub u16);
 #[vtansi(csi, finalbyte = 'G')]
 pub struct CursorHorizontalAbsolute(pub u16);
 
+/// Character Position Absolute (`HPA`).
+///
+/// *Sequence*: `CSI Ps `` ` (backtick)
+///
+/// Move the cursor to column `col` on the current line.
+///
+/// This is functionally equivalent to [`CursorHorizontalAbsolute`] (CHA),
+/// but uses a different escape sequence. Both commands move the cursor
+/// to an absolute column position on the current line.
+///
+/// If `col` is 0, it is adjusted to 1. If `col` is greater than the
+/// right-most column, it is adjusted to the right-most column.
+///
+/// `col` = 1 is the left-most column.
+///
+/// This unsets the pending wrap state without wrapping.
+///
+/// See <https://vt100.net/docs/vt510-rm/HPA.html> for the VT510
+/// specification.
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, finalbyte = '`')]
+pub struct CharacterPositionAbsolute(pub u16);
+
+/// Horizontal and Vertical Position (`HVP`).
+///
+/// *Sequence*: `CSI Ps ; Ps f`
+///
+/// Move the cursor to the specified row and column.
+///
+/// This is functionally equivalent to [`SetCursorPosition`] (CUP),
+/// but uses a different escape sequence (`f` instead of `H`). Both
+/// commands position the cursor at an absolute screen location.
+///
+/// If `row` or `col` is 0, it is adjusted to 1. If `row` or `col` is
+/// greater than the screen dimensions, it is adjusted to the maximum.
+///
+/// `row` = 1, `col` = 1 is the top-left corner of the screen.
+///
+/// This unsets the pending wrap state without wrapping.
+///
+/// See <https://vt100.net/docs/vt510-rm/HVP.html> for the VT510
+/// specification.
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, finalbyte = 'f')]
+pub struct HorizontalVerticalPosition {
+    pub row: u16,
+    pub col: u16,
+}
+
+impl HorizontalVerticalPosition {
+    #[must_use]
+    pub fn new() -> Self {
+        Self { row: 1, col: 1 }
+    }
+}
+
+impl Default for HorizontalVerticalPosition {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Cursor Horizontal Forward Tabulation (`CHT`).
 ///
 /// *Sequence*: `CSI Ps I`
@@ -1922,5 +2002,41 @@ mod tests {
         let encoded = String::from_utf8(buf).unwrap();
 
         assert_eq!(encoded, "\x1b[3g");
+    }
+
+    #[test]
+    fn test_character_position_absolute_encoding() {
+        let hpa = CharacterPositionAbsolute(25);
+
+        let mut buf = Vec::new();
+        hpa.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        assert_eq!(encoded, "\x1b[25`");
+    }
+
+    #[test]
+    fn test_horizontal_vertical_position_encoding() {
+        let hvp = HorizontalVerticalPosition { row: 10, col: 20 };
+
+        let mut buf = Vec::new();
+        hvp.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        assert_eq!(encoded, "\x1b[10;20f");
+    }
+
+    #[test]
+    fn test_horizontal_vertical_position_default() {
+        let hvp = HorizontalVerticalPosition::default();
+
+        assert_eq!(hvp.row, 1);
+        assert_eq!(hvp.col, 1);
+
+        let mut buf = Vec::new();
+        hvp.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        assert_eq!(encoded, "\x1b[1;1f");
     }
 }
