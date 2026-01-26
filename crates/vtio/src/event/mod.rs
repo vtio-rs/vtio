@@ -52,6 +52,21 @@
 //! | `CSI # Q` or `CSI Pm # Q` | [`color::PopPaletteColors`] |
 //! | `CSI # R` | [`color::ReportPaletteColors`] |
 //! | `CSI Ps # Q` (response) | [`color::PaletteColorsReport`] |
+//! | `OSC 5 ; c ; spec ST` | [`color::SetSpecialColor`], [`color::SpecialColorResponse`] |
+//! | `OSC 6 ; c ; f ST` | [`color::EnableSpecialColor`] |
+//! | `OSC 104 ; c ST` | [`color::ResetPaletteColor`] |
+//! | `OSC 105 ; c ST` | [`color::ResetSpecialColor`] |
+//! | `OSC 106 ; c ; f ST` | [`color::ToggleSpecialColor`] |
+//! | `OSC 110 ST` | [`color::ResetTextForegroundColor`] |
+//! | `OSC 111 ST` | [`color::ResetTextBackgroundColor`] |
+//! | `OSC 112 ST` | [`color::ResetCursorColor`] |
+//! | `OSC 113 ST` | [`color::ResetPointerForegroundColor`] |
+//! | `OSC 114 ST` | [`color::ResetPointerBackgroundColor`] |
+//! | `OSC 115 ST` | [`color::ResetTektronixForegroundColor`] |
+//! | `OSC 116 ST` | [`color::ResetTektronixBackgroundColor`] |
+//! | `OSC 117 ST` | [`color::ResetHighlightBackgroundColor`] |
+//! | `OSC 118 ST` | [`color::ResetTektronixCursorColor`] |
+//! | `OSC 119 ST` | [`color::ResetHighlightForegroundColor`] |
 //!
 //! ## cursor
 //!

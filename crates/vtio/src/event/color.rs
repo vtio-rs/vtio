@@ -856,6 +856,698 @@ impl RequestOrSetHighlightForegroundColor {
 }
 
 // =============================================================================
+// Color Reset Operations (OSC 104, 105, 106, 110-119)
+// =============================================================================
+
+/// Reset palette color to default value.
+///
+/// *Sequence*: `OSC 104 ; c ST`
+///
+/// Resets palette color number `c` to its default value. If `c` is omitted
+/// (index is `None`), all colors are reset to their default values.
+///
+/// This is the reset counterpart to [`RequestOrSetTerminalPaletteColor`].
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetPaletteColor;
+/// use vtansi::AnsiEncode;
+///
+/// // Reset color 5
+/// let reset = ResetPaletteColor::new(5);
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]104;5\x1b\\");
+///
+/// // Reset all colors
+/// let reset = ResetPaletteColor::all();
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]104;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetTerminalPaletteColor`] - Set/query palette colors
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "104")]
+pub struct ResetPaletteColor {
+    /// The palette index to reset. `None` means reset all colors.
+    pub index: Option<u8>,
+}
+
+impl ResetPaletteColor {
+    /// Create a reset command for a specific palette color.
+    #[must_use]
+    pub const fn new(index: u8) -> Self {
+        Self { index: Some(index) }
+    }
+
+    /// Create a reset command for all palette colors.
+    #[must_use]
+    pub const fn all() -> Self {
+        Self { index: None }
+    }
+}
+
+/// Special color index for colorBD, colorUL, etc.
+///
+/// These are the special colors that can be set/reset independently
+/// from the normal 256-color palette.
+///
+/// # See Also
+///
+/// - [`SetSpecialColor`] - Set a special color
+/// - [`ResetSpecialColor`] - Reset a special color
+/// - [`ToggleSpecialColor`] - Enable/disable a special color
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    num_enum::IntoPrimitive,
+    num_enum::TryFromPrimitive,
+    vtansi::derive::FromAnsi,
+    vtansi::derive::ToAnsi,
+)]
+#[repr(u8)]
+pub enum SpecialColorIndex {
+    /// Bold foreground color (colorBD).
+    Bold = 0,
+    /// Underline foreground color (colorUL).
+    Underline = 1,
+    /// Blink foreground color (colorBL).
+    Blink = 2,
+    /// Reverse foreground color (colorRV). Not typically used.
+    Reverse = 3,
+    /// Italic foreground color (colorIT).
+    Italic = 4,
+}
+
+impl SpecialColorIndex {
+    /// Get the abbreviation for this special color (e.g., "BD" for Bold).
+    #[must_use]
+    pub const fn abbreviation(&self) -> &'static str {
+        match self {
+            Self::Bold => "BD",
+            Self::Underline => "UL",
+            Self::Blink => "BL",
+            Self::Reverse => "RV",
+            Self::Italic => "IT",
+        }
+    }
+}
+
+impl fmt::Display for SpecialColorIndex {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Self::Bold => "Bold",
+            Self::Underline => "Underline",
+            Self::Blink => "Blink",
+            Self::Reverse => "Reverse",
+            Self::Italic => "Italic",
+        };
+        f.write_str(name)
+    }
+}
+
+/// Reset special color to default value.
+///
+/// *Sequence*: `OSC 105 ; c ST`
+///
+/// Resets special color number `c` to its default value. If `c` is omitted
+/// (index is `None`), all special colors are reset.
+///
+/// Special colors include colorBD (bold), colorUL (underline), colorBL (blink),
+/// colorRV (reverse), and colorIT (italic).
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::{ResetSpecialColor, SpecialColorIndex};
+/// use vtansi::AnsiEncode;
+///
+/// // Reset bold color
+/// let reset = ResetSpecialColor::new(SpecialColorIndex::Bold);
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]105;0\x1b\\");
+///
+/// // Reset all special colors
+/// let reset = ResetSpecialColor::all();
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]105;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`SetSpecialColor`] - Set a special color
+/// - [`ToggleSpecialColor`] - Enable/disable a special color
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "105")]
+pub struct ResetSpecialColor {
+    /// The special color index to reset. `None` means reset all.
+    pub index: Option<SpecialColorIndex>,
+}
+
+impl ResetSpecialColor {
+    /// Create a reset command for a specific special color.
+    #[must_use]
+    pub const fn new(index: SpecialColorIndex) -> Self {
+        Self { index: Some(index) }
+    }
+
+    /// Create a reset command for all special colors.
+    #[must_use]
+    pub const fn all() -> Self {
+        Self { index: None }
+    }
+}
+
+/// Enable or disable a special color.
+///
+/// *Sequence*: `OSC 106 ; c ; f ST`
+///
+/// Enables (f=1) or disables (f=0) special color number `c`.
+/// When disabled, the special color reverts to normal foreground color.
+///
+/// This sequence is also available as OSC 6 with the same format.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::{ToggleSpecialColor, SpecialColorIndex};
+/// use vtansi::AnsiEncode;
+///
+/// // Enable bold color
+/// let enable = ToggleSpecialColor::enable(SpecialColorIndex::Bold);
+/// let mut buf = Vec::new();
+/// enable.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]106;0;1\x1b\\");
+///
+/// // Disable underline color
+/// let disable = ToggleSpecialColor::disable(SpecialColorIndex::Underline);
+/// let mut buf = Vec::new();
+/// disable.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]106;1;0\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`SetSpecialColor`] - Set a special color
+/// - [`ResetSpecialColor`] - Reset a special color
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "106")]
+pub struct ToggleSpecialColor {
+    /// The special color index.
+    pub index: SpecialColorIndex,
+    /// Whether the special color is enabled (1) or disabled (0).
+    pub enabled: u8,
+}
+
+impl ToggleSpecialColor {
+    /// Create a command to enable a special color.
+    #[must_use]
+    pub const fn enable(index: SpecialColorIndex) -> Self {
+        Self { index, enabled: 1 }
+    }
+
+    /// Create a command to disable a special color.
+    #[must_use]
+    pub const fn disable(index: SpecialColorIndex) -> Self {
+        Self { index, enabled: 0 }
+    }
+
+    /// Create a toggle command with explicit enabled state.
+    #[must_use]
+    pub const fn new(index: SpecialColorIndex, enabled: bool) -> Self {
+        Self {
+            index,
+            enabled: if enabled { 1 } else { 0 },
+        }
+    }
+
+    /// Check if this command enables the special color.
+    #[must_use]
+    pub const fn is_enabled(&self) -> bool {
+        self.enabled != 0
+    }
+}
+
+/// Reset VT100 text foreground color to default.
+///
+/// *Sequence*: `OSC 110 ST`
+///
+/// Resets the default text foreground color (set by OSC 10) to its default value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetTextForegroundColor;
+/// use vtansi::AnsiEncode;
+///
+/// let reset = ResetTextForegroundColor;
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]110;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetSpecialTextForegroundColor`] - Set/query foreground color
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "110")]
+pub struct ResetTextForegroundColor;
+
+/// Reset VT100 text background color to default.
+///
+/// *Sequence*: `OSC 111 ST`
+///
+/// Resets the default text background color (set by OSC 11) to its default value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetTextBackgroundColor;
+/// use vtansi::AnsiEncode;
+///
+/// let reset = ResetTextBackgroundColor;
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]111;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetSpecialTextBackgroundColor`] - Set/query background color
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "111")]
+pub struct ResetTextBackgroundColor;
+
+/// Reset text cursor color to default.
+///
+/// *Sequence*: `OSC 112 ST`
+///
+/// Resets the text cursor color (set by OSC 12) to its default value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetCursorColor;
+/// use vtansi::AnsiEncode;
+///
+/// let reset = ResetCursorColor;
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]112;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetCursorColor`] - Set/query cursor color
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "112")]
+pub struct ResetCursorColor;
+
+/// Reset pointer (mouse cursor) foreground color to default.
+///
+/// *Sequence*: `OSC 113 ST`
+///
+/// Resets the pointer foreground color (set by OSC 13) to its default value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetPointerForegroundColor;
+/// use vtansi::AnsiEncode;
+///
+/// let reset = ResetPointerForegroundColor;
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]113;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetPointerForegroundColor`] - Set/query pointer foreground
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "113")]
+pub struct ResetPointerForegroundColor;
+
+/// Reset pointer (mouse cursor) background color to default.
+///
+/// *Sequence*: `OSC 114 ST`
+///
+/// Resets the pointer background color (set by OSC 14) to its default value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetPointerBackgroundColor;
+/// use vtansi::AnsiEncode;
+///
+/// let reset = ResetPointerBackgroundColor;
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]114;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetPointerBackgroundColor`] - Set/query pointer background
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "114")]
+pub struct ResetPointerBackgroundColor;
+
+/// Reset Tektronix foreground color to default.
+///
+/// *Sequence*: `OSC 115 ST`
+///
+/// Resets the Tektronix foreground color (set by OSC 15) to its default value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetTektronixForegroundColor;
+/// use vtansi::AnsiEncode;
+///
+/// let reset = ResetTektronixForegroundColor;
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]115;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetTektronixForegroundColor`] - Set/query Tektronix foreground
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "115")]
+pub struct ResetTektronixForegroundColor;
+
+/// Reset Tektronix background color to default.
+///
+/// *Sequence*: `OSC 116 ST`
+///
+/// Resets the Tektronix background color (set by OSC 16) to its default value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetTektronixBackgroundColor;
+/// use vtansi::AnsiEncode;
+///
+/// let reset = ResetTektronixBackgroundColor;
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]116;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetTektronixBackgroundColor`] - Set/query Tektronix background
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "116")]
+pub struct ResetTektronixBackgroundColor;
+
+/// Reset highlight (selection) background color to default.
+///
+/// *Sequence*: `OSC 117 ST`
+///
+/// Resets the highlight background color (set by OSC 17) to its default value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetHighlightBackgroundColor;
+/// use vtansi::AnsiEncode;
+///
+/// let reset = ResetHighlightBackgroundColor;
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]117;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetHighlightBackgroundColor`] - Set/query highlight background
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "117")]
+pub struct ResetHighlightBackgroundColor;
+
+/// Reset Tektronix cursor color to default.
+///
+/// *Sequence*: `OSC 118 ST`
+///
+/// Resets the Tektronix cursor color (set by OSC 18) to its default value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetTektronixCursorColor;
+/// use vtansi::AnsiEncode;
+///
+/// let reset = ResetTektronixCursorColor;
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]118;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetTektronixCursorColor`] - Set/query Tektronix cursor color
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "118")]
+pub struct ResetTektronixCursorColor;
+
+/// Reset highlight (selection) foreground color to default.
+///
+/// *Sequence*: `OSC 119 ST`
+///
+/// Resets the highlight foreground color (set by OSC 19) to its default value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::ResetHighlightForegroundColor;
+/// use vtansi::AnsiEncode;
+///
+/// let reset = ResetHighlightForegroundColor;
+/// let mut buf = Vec::new();
+/// reset.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]119;\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestOrSetHighlightForegroundColor`] - Set/query highlight foreground
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "119")]
+pub struct ResetHighlightForegroundColor;
+
+// =============================================================================
+// Special Color Operations (OSC 5, OSC 6)
+// =============================================================================
+
+/// Change or query a special color.
+///
+/// *Sequence*: `OSC 5 ; c ; spec ST`
+///
+/// Sets or queries special color number `c`. Special colors include colorBD
+/// (bold), colorUL (underline), colorBL (blink), colorRV (reverse), and
+/// colorIT (italic).
+///
+/// Use `?` as the spec to query the current value.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::{SetSpecialColor, SpecialColorIndex};
+/// use vtansi::AnsiEncode;
+/// use xparsecolor::XColor;
+///
+/// // Set bold color to red
+/// let color = XColor::from_rgb8(255, 0, 0);
+/// let set = SetSpecialColor::set(SpecialColorIndex::Bold, &color);
+/// let mut buf = Vec::new();
+/// set.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]5;0;rgb:ffff/0000/0000\x1b\\");
+///
+/// // Query underline color
+/// let query = SetSpecialColor::query(SpecialColorIndex::Underline);
+/// let mut buf = Vec::new();
+/// query.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]5;1;?\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`ResetSpecialColor`] - Reset a special color
+/// - [`ToggleSpecialColor`] - Enable/disable a special color
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(Debug, Clone, Copy, PartialEq, vtansi::derive::AnsiOutput)]
+#[vtansi(osc, number = "5")]
+pub struct SetSpecialColor {
+    /// The special color index.
+    pub index: SpecialColorIndex,
+    /// The color action (query or set).
+    pub action: TerminalColorAction,
+}
+
+impl SetSpecialColor {
+    /// Create a query for a special color.
+    #[must_use]
+    pub const fn query(index: SpecialColorIndex) -> Self {
+        Self {
+            index,
+            action: TerminalColorAction::Query,
+        }
+    }
+
+    /// Create a command to set a special color.
+    #[must_use]
+    pub const fn set(index: SpecialColorIndex, color: &XColor) -> Self {
+        Self {
+            index,
+            action: TerminalColorAction::Set(*color),
+        }
+    }
+}
+
+/// Response to a special color query.
+///
+/// *Sequence*: `OSC 5 ; c ; spec ST`
+///
+/// Response from the terminal when querying a special color with
+/// [`SetSpecialColor::query`].
+#[derive(Debug, Clone, Copy, PartialEq, vtansi::derive::AnsiInput)]
+#[vtansi(osc, number = "5")]
+pub struct SpecialColorResponse {
+    /// The special color index.
+    pub index: SpecialColorIndex,
+    /// The color value.
+    pub color: TerminalPaletteColor,
+}
+
+impl SpecialColorResponse {
+    /// Create a new special color response.
+    #[must_use]
+    pub const fn new(
+        index: SpecialColorIndex,
+        color: TerminalPaletteColor,
+    ) -> Self {
+        Self { index, color }
+    }
+}
+
+/// Enable or disable a special color (alternate form).
+///
+/// *Sequence*: `OSC 6 ; c ; f ST`
+///
+/// This is an alternate form of [`ToggleSpecialColor`] (OSC 106) for
+/// compatibility. Both produce the same effect.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::color::{EnableSpecialColor, SpecialColorIndex};
+/// use vtansi::AnsiEncode;
+///
+/// // Enable italic color
+/// let enable = EnableSpecialColor::enable(SpecialColorIndex::Italic);
+/// let mut buf = Vec::new();
+/// enable.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b]6;4;1\x1b\\");
+/// ```
+///
+/// # See Also
+///
+/// - [`ToggleSpecialColor`] - Alternate form (OSC 106)
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(osc, number = "6")]
+pub struct EnableSpecialColor {
+    /// The special color index.
+    pub index: SpecialColorIndex,
+    /// Whether the special color is enabled (1) or disabled (0).
+    pub enabled: u8,
+}
+
+impl EnableSpecialColor {
+    /// Create a command to enable a special color.
+    #[must_use]
+    pub const fn enable(index: SpecialColorIndex) -> Self {
+        Self { index, enabled: 1 }
+    }
+
+    /// Create a command to disable a special color.
+    #[must_use]
+    pub const fn disable(index: SpecialColorIndex) -> Self {
+        Self { index, enabled: 0 }
+    }
+
+    /// Create a toggle command with explicit enabled state.
+    #[must_use]
+    pub const fn new(index: SpecialColorIndex, enabled: bool) -> Self {
+        Self {
+            index,
+            enabled: if enabled { 1 } else { 0 },
+        }
+    }
+
+    /// Check if this command enables the special color.
+    #[must_use]
+    pub const fn is_enabled(&self) -> bool {
+        self.enabled != 0
+    }
+}
+
+// =============================================================================
 // Palette Color Stack (XTPUSHCOLORS/XTPOPCOLORS/XTREPORTCOLORS)
 // =============================================================================
 
@@ -1581,5 +2273,185 @@ mod tests {
     fn test_pop_palette_colors_default_trait() {
         let pop = PopPaletteColors::default();
         assert_eq!(pop.position, None);
+    }
+
+    // =========================================================================
+    // Stage 4: Color Reset Operations Tests
+    // =========================================================================
+
+    #[test]
+    fn test_reset_palette_color_single() {
+        let reset = ResetPaletteColor::new(5);
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]104;5\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_palette_color_all() {
+        let reset = ResetPaletteColor::all();
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]104;\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_palette_color_default() {
+        let reset = ResetPaletteColor::default();
+        assert_eq!(reset.index, None);
+    }
+
+    #[test]
+    fn test_special_color_index_values() {
+        assert_eq!(u8::from(SpecialColorIndex::Bold), 0);
+        assert_eq!(u8::from(SpecialColorIndex::Underline), 1);
+        assert_eq!(u8::from(SpecialColorIndex::Blink), 2);
+        assert_eq!(u8::from(SpecialColorIndex::Reverse), 3);
+        assert_eq!(u8::from(SpecialColorIndex::Italic), 4);
+    }
+
+    #[test]
+    fn test_special_color_index_abbreviation() {
+        assert_eq!(SpecialColorIndex::Bold.abbreviation(), "BD");
+        assert_eq!(SpecialColorIndex::Underline.abbreviation(), "UL");
+        assert_eq!(SpecialColorIndex::Blink.abbreviation(), "BL");
+        assert_eq!(SpecialColorIndex::Reverse.abbreviation(), "RV");
+        assert_eq!(SpecialColorIndex::Italic.abbreviation(), "IT");
+    }
+
+    #[test]
+    fn test_reset_special_color_single() {
+        let reset = ResetSpecialColor::new(SpecialColorIndex::Bold);
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]105;0\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_special_color_underline() {
+        let reset = ResetSpecialColor::new(SpecialColorIndex::Underline);
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]105;1\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_special_color_all() {
+        let reset = ResetSpecialColor::all();
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]105;\x1b\\");
+    }
+
+    #[test]
+    fn test_toggle_special_color_enable() {
+        let toggle = ToggleSpecialColor::enable(SpecialColorIndex::Bold);
+        let encoded = toggle.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]106;0;1\x1b\\");
+        assert!(toggle.is_enabled());
+    }
+
+    #[test]
+    fn test_toggle_special_color_disable() {
+        let toggle = ToggleSpecialColor::disable(SpecialColorIndex::Underline);
+        let encoded = toggle.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]106;1;0\x1b\\");
+        assert!(!toggle.is_enabled());
+    }
+
+    #[test]
+    fn test_reset_text_foreground_color() {
+        let reset = ResetTextForegroundColor;
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]110;\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_text_background_color() {
+        let reset = ResetTextBackgroundColor;
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]111;\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_cursor_color() {
+        let reset = ResetCursorColor;
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]112;\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_pointer_foreground_color() {
+        let reset = ResetPointerForegroundColor;
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]113;\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_pointer_background_color() {
+        let reset = ResetPointerBackgroundColor;
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]114;\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_tektronix_foreground_color() {
+        let reset = ResetTektronixForegroundColor;
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]115;\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_tektronix_background_color() {
+        let reset = ResetTektronixBackgroundColor;
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]116;\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_highlight_background_color() {
+        let reset = ResetHighlightBackgroundColor;
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]117;\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_tektronix_cursor_color() {
+        let reset = ResetTektronixCursorColor;
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]118;\x1b\\");
+    }
+
+    #[test]
+    fn test_reset_highlight_foreground_color() {
+        let reset = ResetHighlightForegroundColor;
+        let encoded = reset.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]119;\x1b\\");
+    }
+
+    #[test]
+    fn test_set_special_color_query() {
+        let query = SetSpecialColor::query(SpecialColorIndex::Underline);
+        let encoded = query.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]5;1;?\x1b\\");
+    }
+
+    #[test]
+    fn test_set_special_color_set() {
+        let color = XColor::from_rgb8(255, 0, 0);
+        let set = SetSpecialColor::set(SpecialColorIndex::Bold, &color);
+        let encoded = set.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]5;0;rgb:ffff/0000/0000\x1b\\");
+    }
+
+    #[test]
+    fn test_enable_special_color_enable() {
+        let enable = EnableSpecialColor::enable(SpecialColorIndex::Italic);
+        let encoded = enable.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]6;4;1\x1b\\");
+        assert!(enable.is_enabled());
+    }
+
+    #[test]
+    fn test_enable_special_color_disable() {
+        let disable = EnableSpecialColor::disable(SpecialColorIndex::Blink);
+        let encoded = disable.encode_ansi().unwrap();
+        assert_eq!(&encoded, b"\x1b]6;2;0\x1b\\");
+        assert!(!disable.is_enabled());
     }
 }
