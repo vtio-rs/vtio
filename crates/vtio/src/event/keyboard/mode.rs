@@ -38,9 +38,11 @@ bitflags! {
 
 /// Query Keyboard Enhancement Flags.
 ///
+/// *Sequence*: `CSI ? u`
+///
 /// Query the current keyboard enhancement flags.
 ///
-/// The terminal will respond with [`KeyboardEnhancementFlagsResponse`].
+/// The terminal responds with `CSI ? Ps u` ([`KeyboardEnhancementFlagsResponse`]).
 ///
 /// See <https://sw.kovidgoyal.net/kitty/keyboard-protocol/> for more
 /// information.
@@ -48,6 +50,12 @@ bitflags! {
 #[vtansi(csi, private = '?', finalbyte = 'u')]
 pub struct KeyboardEnhancementFlagsQuery;
 
+/// Keyboard Enhancement Flags Response.
+///
+/// *Sequence*: `CSI ? Ps u`
+///
+/// Response to [`KeyboardEnhancementFlagsQuery`] containing the current
+/// keyboard enhancement flags.
 #[derive(
     Debug,
     PartialOrd,
@@ -65,6 +73,8 @@ pub struct KeyboardEnhancementFlagsResponse(
 
 /// Push Keyboard Enhancement Flags.
 ///
+/// *Sequence*: `CSI > Ps u`
+///
 /// Enable the kitty keyboard protocol, which adds extra information to
 /// keyboard events and removes ambiguity for modifier keys.
 ///
@@ -79,6 +89,8 @@ pub struct PushKeyboardEnhancementFlags(pub KeyboardEnhancementFlags);
 
 /// Set Keyboard Enhancement Flags.
 ///
+/// *Sequence*: `CSI = Ps u`
+///
 /// Set the keyboard enhancement flags directly, without using the stack.
 ///
 /// Unlike [`PushKeyboardEnhancementFlags`], this does not push the flags onto
@@ -92,6 +104,8 @@ pub struct SetKeyboardEnhancementFlags(pub KeyboardEnhancementFlags);
 
 /// Pop Keyboard Enhancement Flags.
 ///
+/// *Sequence*: `CSI < u`
+///
 /// Disable extra kinds of keyboard events.
 ///
 /// Specifically, it pops one level of keyboard enhancement flags.
@@ -104,6 +118,8 @@ pub struct PopKeyboardEnhancementFlags;
 
 /// Set Application Keypad Mode (`DECKPAM`).
 ///
+/// *Sequence*: `ESC =`
+///
 /// Enable application keypad mode.
 ///
 /// See <https://terminalguide.namepad.de/seq/esc_a_eq/> for
@@ -113,6 +129,8 @@ pub struct PopKeyboardEnhancementFlags;
 pub struct SetApplicationKeypadMode;
 
 /// Reset Application Keypad Mode (`DECKPNM`).
+///
+/// *Sequence*: `ESC >`
 ///
 /// Disable application keypad mode.
 ///

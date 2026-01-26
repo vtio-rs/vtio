@@ -11,9 +11,11 @@
 
 /// Request Operating Status (`DSR`).
 ///
+/// *Sequence*: `CSI 5 n`
+///
 /// Request the terminal's operating status.
 ///
-/// The terminal always replies with [`OperatingStatusReport`] (`CSI 0 n`).
+/// The terminal replies with `CSI 0 n` ([`OperatingStatusReport`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn-5/> for terminal
 /// support specifics.
@@ -30,7 +32,9 @@
 #[vtansi(csi, params = ["5"], finalbyte = 'n')]
 pub struct RequestOperatingStatus;
 
-/// Operating Status Report (`DSR`).
+/// Operating Status Report (`DSR` response).
+///
+/// *Sequence*: `CSI 0 n`
 ///
 /// Response from the terminal to [`RequestOperatingStatus`].
 ///
@@ -57,9 +61,11 @@ pub struct OperatingStatusReport;
 
 /// Request Operating Status (private mode) (`DSR`).
 ///
+/// *Sequence*: `CSI ? 5 n`
+///
 /// Request the terminal's operating status using the DEC private mode variant.
 ///
-/// The terminal replies with [`OperatingStatusReportPrivate`].
+/// The terminal replies with `CSI ? 0 n` ([`OperatingStatusReportPrivate`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -78,9 +84,11 @@ pub struct RequestOperatingStatusPrivate;
 
 /// Request Printer Status (`DSR`).
 ///
-/// Request the printer status (DSR 15).
+/// *Sequence*: `CSI ? 15 n`
 ///
-/// The terminal replies with [`PrinterStatusReport`].
+/// Request the printer status.
+///
+/// The terminal replies with `CSI ? Ps n` ([`PrinterStatusReport`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -99,9 +107,11 @@ pub struct RequestPrinterStatus;
 
 /// Request User Defined Key Status (`DSR`).
 ///
-/// Request the status of user-defined keys (DSR 25).
+/// *Sequence*: `CSI ? 25 n`
 ///
-/// The terminal replies with [`UdkStatusReport`].
+/// Request the status of user-defined keys.
+///
+/// The terminal replies with `CSI ? Ps n` ([`UdkStatusReport`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -120,9 +130,11 @@ pub struct RequestUdkStatus;
 
 /// Request Keyboard Status (`DSR`).
 ///
-/// Request the keyboard status (DSR 26).
+/// *Sequence*: `CSI ? 26 n`
 ///
-/// The terminal replies with [`KeyboardStatusReport`].
+/// Request the keyboard status.
+///
+/// The terminal replies with `CSI ? 27 ; Ps n` ([`KeyboardStatusReport`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -141,9 +153,11 @@ pub struct RequestKeyboardStatus;
 
 /// Request DEC Locator Status (`DSR`).
 ///
-/// Request the status of the DEC locator (mouse) (DSR 55).
+/// *Sequence*: `CSI ? 55 n`
 ///
-/// The terminal replies with [`LocatorStatusReport`].
+/// Request the status of the DEC locator (mouse).
+///
+/// The terminal replies with `CSI ? Ps n` ([`LocatorStatusReport`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -162,9 +176,11 @@ pub struct RequestLocatorStatus;
 
 /// Request DEC Locator Type (`DSR`).
 ///
-/// Request the type of the DEC locator (mouse) (DSR 56).
+/// *Sequence*: `CSI ? 56 n`
 ///
-/// The terminal replies with [`LocatorTypeReport`].
+/// Request the type of the DEC locator (mouse).
+///
+/// The terminal replies with `CSI ? 57 ; Ps n` ([`LocatorTypeReport`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -183,9 +199,11 @@ pub struct RequestLocatorType;
 
 /// Request Macro Space Status (`DSR`).
 ///
-/// Request the available macro space (DSR 62).
+/// *Sequence*: `CSI ? 62 n`
 ///
-/// The terminal replies with [`MacroSpaceReport`].
+/// Request the available macro space.
+///
+/// The terminal replies with `CSI ? Ps * {` ([`MacroSpaceReport`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -204,9 +222,11 @@ pub struct RequestMacroSpaceStatus;
 
 /// Request Memory Checksum (`DSR`).
 ///
-/// Request a memory checksum (DSR 63).
+/// *Sequence*: `CSI ? 63 ; Ps n`
 ///
-/// The terminal replies with [`MemoryChecksumReport`].
+/// Request a memory checksum for the specified region.
+///
+/// The terminal replies with `DCS Ps ! ~ D...D ST` ([`MemoryChecksumReport`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -228,9 +248,11 @@ pub struct RequestMemoryChecksum {
 
 /// Request Data Integrity Status (`DSR`).
 ///
-/// Request data integrity status (DSR 75).
+/// *Sequence*: `CSI ? 75 n`
 ///
-/// The terminal replies with [`DataIntegrityReport`].
+/// Request data integrity status.
+///
+/// The terminal replies with `CSI ? Ps n` ([`DataIntegrityReport`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -249,9 +271,11 @@ pub struct RequestDataIntegrityStatus;
 
 /// Request Multiple Session Status (`DSR`).
 ///
-/// Request multiple session status (DSR 85).
+/// *Sequence*: `CSI ? 85 n`
 ///
-/// The terminal replies with [`MultipleSessionReport`].
+/// Request multiple session status.
+///
+/// The terminal replies with `CSI ? Ps n` ([`MultipleSessionReport`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sn/> for terminal
 /// support specifics.
@@ -270,7 +294,9 @@ pub struct RequestMultipleSessionStatus;
 
 /// Request Current Color Preference.
 ///
-/// The terminal replies with [`ColorPreferenceReport`].
+/// *Sequence*: `CSI ? 996 n`
+///
+/// The terminal replies with `CSI ? 997 ; Ps n` ([`ColorPreferenceReport`]).
 ///
 /// See <https://contour-terminal.org/vt-extensions/color-palette-update-notifications/>
 /// for more information.
@@ -445,10 +471,10 @@ pub enum ColorPreference {
 
 /// Operating Status Report (private mode).
 ///
+/// *Sequence*: `CSI ? 0 n`
+///
 /// Response to [`RequestOperatingStatusPrivate`].
 /// Indicates the terminal is operating correctly.
-///
-/// Matches: `CSI ? 0 n`
 #[derive(
     Debug,
     PartialOrd,
@@ -464,9 +490,9 @@ pub struct OperatingStatusReportPrivate;
 
 /// Printer Status Report.
 ///
-/// Response to [`RequestPrinterStatus`].
+/// *Sequence*: `CSI ? 10 n` | `CSI ? 11 n` | `CSI ? 13 n`
 ///
-/// Matches: `CSI ? 10 n` | `CSI ? 11 n` | `CSI ? 13 n`
+/// Response to [`RequestPrinterStatus`].
 #[derive(
     Debug,
     PartialOrd,
@@ -486,9 +512,9 @@ pub struct PrinterStatusReport {
 
 /// User-Defined Key Status Report.
 ///
-/// Response to [`RequestUdkStatus`].
+/// *Sequence*: `CSI ? 20 n` | `CSI ? 21 n`
 ///
-/// Matches: `CSI ? 20 n` | `CSI ? 21 n`
+/// Response to [`RequestUdkStatus`].
 #[derive(
     Debug,
     PartialOrd,
@@ -508,9 +534,9 @@ pub struct UdkStatusReport {
 
 /// Keyboard Status Report.
 ///
-/// Response to [`RequestKeyboardStatus`].
+/// *Sequence*: `CSI ? 27 ; Ps n`
 ///
-/// Matches: `CSI ? 27 ; dialect n`
+/// Response to [`RequestKeyboardStatus`].
 #[derive(
     Debug,
     PartialOrd,
@@ -529,9 +555,9 @@ pub struct KeyboardStatusReport {
 
 /// DEC Locator Status Report.
 ///
-/// Response to [`RequestLocatorStatus`].
+/// *Sequence*: `CSI ? 50 n` | `CSI ? 53 n`
 ///
-/// Matches: `CSI ? 50 n` | `CSI ? 53 n`
+/// Response to [`RequestLocatorStatus`].
 #[derive(
     Debug,
     PartialOrd,
@@ -551,9 +577,9 @@ pub struct LocatorStatusReport {
 
 /// DEC Locator Type Report.
 ///
-/// Response to [`RequestLocatorType`].
+/// *Sequence*: `CSI ? 57 ; Ps n`
 ///
-/// Matches: `CSI ? 57 ; type n`
+/// Response to [`RequestLocatorType`].
 #[derive(
     Debug,
     PartialOrd,
@@ -572,9 +598,9 @@ pub struct LocatorTypeReport {
 
 /// Macro Space Report.
 ///
-/// Response to [`RequestMacroSpaceStatus`].
+/// *Sequence*: `CSI ? 62 ; Ps n`
 ///
-/// Matches: `CSI ? 62 ; space n`
+/// Response to [`RequestMacroSpaceStatus`].
 #[derive(
     Debug,
     PartialOrd,
@@ -593,9 +619,9 @@ pub struct MacroSpaceReport {
 
 /// Memory Checksum Report.
 ///
-/// Response to [`RequestMemoryChecksum`].
+/// *Sequence*: `CSI ? 63 ; Ps ; Ps n`
 ///
-/// Matches: `CSI ? 63 ; id ; checksum n`
+/// Response to [`RequestMemoryChecksum`].
 #[derive(
     Debug,
     PartialOrd,
@@ -616,9 +642,9 @@ pub struct MemoryChecksumReport {
 
 /// Data Integrity Status Report.
 ///
-/// Response to [`RequestDataIntegrityStatus`].
+/// *Sequence*: `CSI ? 70 n` | `CSI ? 71 n`
 ///
-/// Matches: `CSI ? 70 n` | `CSI ? 71 n`
+/// Response to [`RequestDataIntegrityStatus`].
 #[derive(
     Debug,
     PartialOrd,
@@ -637,9 +663,9 @@ pub struct DataIntegrityReport {
 
 /// Multiple Session Status Report.
 ///
-/// Response to [`RequestMultipleSessionStatus`].
+/// *Sequence*: `CSI ? 80 n` | `CSI ? 81 n` | `CSI ? 83 n`
 ///
-/// Matches: `CSI ? 80 n` | `CSI ? 81 n` | `CSI ? 83 n`
+/// Response to [`RequestMultipleSessionStatus`].
 #[derive(
     Debug,
     PartialOrd,
@@ -658,9 +684,9 @@ pub struct MultipleSessionReport {
 
 /// Color Preference Report.
 ///
-/// Response to [`RequestColorPreference`].
+/// *Sequence*: `CSI ? 997 ; Ps n`
 ///
-/// Matches: `CSI ? 997 ; color n`
+/// Response to [`RequestColorPreference`].
 #[derive(
     Debug,
     PartialOrd,

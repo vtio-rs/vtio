@@ -2261,6 +2261,8 @@ pub fn parse_sgr_params(bytes: &[u8]) -> Result<Vec<SgrAttr>, ParseError> {
 
 /// Select Graphic Rendition sequence (`CSI Pm m`).
 ///
+/// *Sequence*: `CSI Pm m`
+///
 /// SGR is the standard ANSI escape sequence for controlling text attributes
 /// and colors in terminal output. This struct wraps a single [`SgrAttr`]
 /// and handles the CSI prefix and `m` final byte when encoding.
@@ -2385,6 +2387,8 @@ impl From<SgrAttr> for Sgr {
 /// This wrapper type changes how extended colors are encoded in the SGR
 /// sequence, using the legacy xterm-style semicolon format instead of the
 /// ISO-8613-6 colon format.
+///
+/// *Sequence*: `CSI Pm m`
 ///
 /// # Format Comparison
 ///

@@ -60,6 +60,10 @@
 crate::terminal_mode!(
     /// Smooth Scroll Mode (`DECSCLM`).
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 4 h` (set) / `CSI ? 4 l` (reset)
+    ///
     /// Control whether scrolling operations use smooth scrolling or
     /// jump scrolling.
     ///
@@ -75,6 +79,11 @@ crate::terminal_mode!(
 );
 
 /// Set Top and Bottom Margins (`DECSTBM`).
+///
+/// *Sequence*: `CSI Ps ; Ps r`
+///
+/// Where the first `Ps` is the top margin and the second `Ps` is the
+/// bottom margin. Default values reset to full screen.
 ///
 /// Define the vertical scrolling region by specifying the top and
 /// bottom margins. The scrolling region is the area between these
@@ -115,6 +124,11 @@ pub struct SetTopAndBottomMargins {
 
 /// Set Left and Right Margins (`DECSLRM`).
 ///
+/// *Sequence*: `CSI Ps ; Ps s`
+///
+/// Where the first `Ps` is the left margin and the second `Ps` is the
+/// right margin. Default values reset to full screen width.
+///
 /// Define the horizontal scrolling region by specifying the left and
 /// right margins. This feature is part of the DEC private mode set and
 /// is not as widely supported as vertical margins.
@@ -148,6 +162,8 @@ pub struct SetLeftAndRightMargins {
 
 /// Request top and bottom margins (`DECRQSS` - `DECSTBM`).
 ///
+/// *Sequence*: `DCS $ q r ST`
+///
 /// Request the current vertical scrolling region (top and bottom
 /// margins) from the terminal using DECRQSS (Request Selection or
 /// Setting) to query the DECSTBM (Set Top and Bottom Margins) setting.
@@ -155,11 +171,8 @@ pub struct SetLeftAndRightMargins {
 /// The terminal responds with a DCS sequence containing the current
 /// margin settings.
 ///
-/// The response format is:
-/// `DCS 1 $ r Pt ; Pb r ST`
-///
-/// Where `Pt` is the top margin line number and `Pb` is the bottom
-/// margin line number.
+/// The terminal responds with `DCS 1 $ r Pt ; Pb r ST` where `Pt` is
+/// the top margin line number and `Pb` is the bottom margin line number.
 ///
 /// See <https://terminalguide.namepad.de/seq/dcs-dollar-q-r/> for
 /// terminal support specifics.
@@ -178,6 +191,8 @@ pub struct RequestTopBottomMargins;
 
 /// Request left and right margins (`DECRQSS` - `DECSLRM`).
 ///
+/// *Sequence*: `DCS $ q s ST`
+///
 /// Request the current horizontal scrolling region (left and right
 /// margins) from the terminal using DECRQSS (Request Selection or
 /// Setting) to query the DECSLRM (Set Left and Right Margins) setting.
@@ -185,11 +200,8 @@ pub struct RequestTopBottomMargins;
 /// The terminal responds with a DCS sequence containing the current
 /// margin settings.
 ///
-/// The response format is:
-/// `DCS 1 $ r Pl ; Pr s ST`
-///
-/// Where `Pl` is the left margin column number and `Pr` is the right
-/// margin column number.
+/// The terminal responds with `DCS 1 $ r Pl ; Pr s ST` where `Pl` is
+/// the left margin column number and `Pr` is the right margin column number.
 ///
 /// See <https://terminalguide.namepad.de/seq/dcs-dollar-q-s/> for
 /// terminal support specifics.
@@ -207,6 +219,8 @@ pub struct RequestTopBottomMargins;
 pub struct RequestLeftRightMargins;
 
 /// Scroll Up (`SU`).
+///
+/// *Sequence*: `CSI Ps S`
 ///
 /// Scroll the scrolling region up by the specified number of lines. New
 /// blank lines with current attributes appear at the bottom of the
@@ -235,6 +249,8 @@ pub struct ScrollUp(pub u16);
 
 /// Scroll Down (`SD`).
 ///
+/// *Sequence*: `CSI Ps T`
+///
 /// Scroll the scrolling region down by the specified number of lines.
 /// New blank lines with current attributes appear at the top of the
 /// scrolling region. Lines scrolled off the bottom are lost.
@@ -261,6 +277,8 @@ pub struct ScrollUp(pub u16);
 pub struct ScrollDown(pub u16);
 
 /// Scroll Left (`SL`).
+///
+/// *Sequence*: `CSI Ps SP @`
 ///
 /// Scroll the scrolling region left by the specified number of columns.
 /// New blank columns with current attributes appear at the right edge
@@ -290,6 +308,8 @@ pub struct ScrollDown(pub u16);
 pub struct ScrollLeft(pub u16);
 
 /// Scroll Right (`SR`).
+///
+/// *Sequence*: `CSI Ps SP A`
 ///
 /// Scroll the scrolling region right by the specified number of
 /// columns. New blank columns with current attributes appear at the

@@ -242,6 +242,7 @@ impl TerminalPaletteAction {
     }
 }
 
+/// *Sequence*: `OSC 4 ; Pc ; Pt ST`
 #[derive(Debug, Clone, Copy, PartialEq, vtansi::derive::AnsiInput)]
 #[vtansi(osc, number = "4")]
 pub struct TerminalPaletteColorResponse {
@@ -290,6 +291,11 @@ impl TerminalPaletteColorResponse {
     }
 }
 
+/// Change or request color number `Pc` to the color specified by `Pt`.
+///
+/// *Sequence*: `OSC 4 ; Pc ; Pt ST`
+///
+/// Where `Pt` is either `?` to query or a color spec like `rgb:rr/gg/bb`.
 #[derive(Debug, Clone, Copy, PartialEq, vtansi::derive::AnsiOutput)]
 #[vtansi(osc, number = "4")]
 pub struct RequestOrSetTerminalPaletteColor(
@@ -350,6 +356,8 @@ impl Deref for RequestOrSetTerminalPaletteColor {
 
 /// Response to a query for the special text default foreground color.
 ///
+/// *Sequence*: `OSC 10 ; Pt ST`
+///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-10/> for
 /// terminal support specifics.
@@ -375,6 +383,8 @@ impl Deref for SpecialTextForegroundColorResponse {
 }
 
 /// Change/read special text default foreground color.
+///
+/// *Sequence*: `OSC 10 ; Pt ST`
 ///
 /// This is a color in addition to the palette and direct colors which
 /// applies to all text that has not otherwise been assigned a
@@ -412,6 +422,8 @@ impl Deref for RequestOrSetSpecialTextForegroundColor {
 
 /// Response to a query for the special text default background color.
 ///
+/// *Sequence*: `OSC 11 ; Pt ST`
+///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-11/> for
 /// terminal support specifics.
@@ -437,6 +449,8 @@ impl Deref for SpecialTextBackgroundColorResponse {
 }
 
 /// Change/read special text default background color.
+///
+/// *Sequence*: `OSC 11 ; Pt ST`
 ///
 /// This is a color in addition to the palette and direct colors which
 /// applies to all text that has not otherwise been assigned a
@@ -474,6 +488,8 @@ impl Deref for RequestOrSetSpecialTextBackgroundColor {
 
 /// Response to a query for the text cursor color.
 ///
+/// *Sequence*: `OSC 12 ; Pt ST`
+///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-12/> for
 /// terminal support specifics.
@@ -491,6 +507,8 @@ impl Deref for CursorColorResponse {
 }
 
 /// Change/read text cursor color.
+///
+/// *Sequence*: `OSC 12 ; Pt ST`
 ///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-12/> for
@@ -515,6 +533,8 @@ impl RequestOrSetCursorColor {
 
 /// Response to a query for the pointer (mouse cursor) foreground color.
 ///
+/// *Sequence*: `OSC 13 ; Pt ST`
+///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-13/> for
 /// terminal support specifics.
@@ -532,6 +552,8 @@ impl Deref for PointerForegroundColorResponse {
 }
 
 /// Change/read pointer (mouse cursor) foreground color.
+///
+/// *Sequence*: `OSC 13 ; Pt ST`
 ///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-13/> for
@@ -556,6 +578,8 @@ impl RequestOrSetPointerForegroundColor {
 
 /// Response to a query for the pointer (mouse cursor) background color.
 ///
+/// *Sequence*: `OSC 14 ; Pt ST`
+///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-14/> for
 /// terminal support specifics.
@@ -573,6 +597,8 @@ impl Deref for PointerBackgroundColorResponse {
 }
 
 /// Change/read pointer (mouse cursor) background color.
+///
+/// *Sequence*: `OSC 14 ; Pt ST`
 ///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-14/> for
@@ -597,6 +623,8 @@ impl RequestOrSetPointerBackgroundColor {
 
 /// Response to a query for the Tektronix foreground color.
 ///
+/// *Sequence*: `OSC 15 ; Pt ST`
+///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-15/> for
 /// terminal support specifics.
@@ -614,6 +642,8 @@ impl Deref for TektronixForegroundColorResponse {
 }
 
 /// Change/read Tektronix foreground color.
+///
+/// *Sequence*: `OSC 15 ; Pt ST`
 ///
 /// The Tektronix colors are initially set from the VT100 colors,
 /// but after that can be set independently using these control sequences.
@@ -641,6 +671,8 @@ impl RequestOrSetTektronixForegroundColor {
 
 /// Response to a query for the Tektronix background color.
 ///
+/// *Sequence*: `OSC 16 ; Pt ST`
+///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-16/> for
 /// terminal support specifics.
@@ -658,6 +690,8 @@ impl Deref for TektronixBackgroundColorResponse {
 }
 
 /// Change/read Tektronix background color.
+///
+/// *Sequence*: `OSC 16 ; Pt ST`
 ///
 /// The Tektronix colors are initially set from the VT100 colors,
 /// but after that can be set independently using these control sequences.
@@ -685,6 +719,8 @@ impl RequestOrSetTektronixBackgroundColor {
 
 /// Response to a query for the highlight (selection) background color.
 ///
+/// *Sequence*: `OSC 17 ; Pt ST`
+///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-17/> for
 /// terminal support specifics.
@@ -702,6 +738,8 @@ impl Deref for HighlightBackgroundColorResponse {
 }
 
 /// Change/read highlight (selection) background color.
+///
+/// *Sequence*: `OSC 17 ; Pt ST`
 ///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-17/> for
@@ -726,6 +764,8 @@ impl RequestOrSetHighlightBackgroundColor {
 
 /// Response to a query for the Tektronix cursor color.
 ///
+/// *Sequence*: `OSC 18 ; Pt ST`
+///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-18/> for
 /// terminal support specifics.
@@ -743,6 +783,8 @@ impl Deref for TektronixCursorColorResponse {
 }
 
 /// Change/read Tektronix cursor color.
+///
+/// *Sequence*: `OSC 18 ; Pt ST`
 ///
 /// The Tektronix colors are initially set from the VT100 colors,
 /// but after that can be set independently using these control sequences.
@@ -770,6 +812,8 @@ impl RequestOrSetTektronixCursorColor {
 
 /// Response to a query for the highlight (selection) foreground/text color.
 ///
+/// *Sequence*: `OSC 19 ; Pt ST`
+///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-19/> for
 /// terminal support specifics.
@@ -787,6 +831,8 @@ impl Deref for HighlightForegroundColorResponse {
 }
 
 /// Change/read highlight (selection) foreground/text color.
+///
+/// *Sequence*: `OSC 19 ; Pt ST`
 ///
 /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>
 /// for reference and <https://terminalguide.namepad.de/seq/osc-19/> for

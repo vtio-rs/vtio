@@ -2,9 +2,9 @@
 
 /// Erase Display Below (`ED`).
 ///
-/// Erase from cursor position (inclusive) to the end of the screen.
+/// *Sequence*: `CSI Ps J` where `Ps` = 0 (default)
 ///
-/// This is the same as `CSI 0 J` or `CSI J`.
+/// Erase from cursor position (inclusive) to the end of the screen.
 ///
 /// Erases all cells from the cursor position to the end of the screen,
 /// including the cell at the cursor position. This includes all cells on
@@ -32,6 +32,8 @@
 pub struct EraseDisplayBelow;
 
 /// Erase Display Above (`ED`).
+///
+/// *Sequence*: `CSI 1 J`
 ///
 /// Erase from the beginning of the screen to cursor position (inclusive).
 ///
@@ -62,6 +64,8 @@ pub struct EraseDisplayAbove;
 
 /// Erase Display Complete (`ED`).
 ///
+/// *Sequence*: `CSI 2 J`
+///
 /// Erase the entire screen.
 ///
 /// Erases all cells on the screen. The cursor position does not change.
@@ -91,6 +95,8 @@ pub struct EraseDisplayComplete;
 
 /// Erase Display Scroll-back (`ED`).
 ///
+/// *Sequence*: `CSI 3 J`
+///
 /// Erase the scrollback buffer.
 ///
 /// This is an extended command that clears the terminal's scrollback buffer
@@ -118,9 +124,9 @@ pub struct EraseDisplayScrollback;
 
 /// Erase Line Right (`EL`).
 ///
-/// Erase from cursor position (inclusive) to the end of the line.
+/// *Sequence*: `CSI Ps K` where `Ps` = 0 (default)
 ///
-/// This is the same as `CSI 0 K` or `CSI K`.
+/// Erase from cursor position (inclusive) to the end of the line.
 ///
 /// Erases all cells from the cursor position to the end of the current line,
 /// including the cell at the cursor position. The cursor position does not
@@ -145,6 +151,8 @@ pub struct EraseDisplayScrollback;
 pub struct EraseLineRight;
 
 /// Erase Line Left (`EL`).
+///
+/// *Sequence*: `CSI 1 K`
 ///
 /// Erase from the beginning of the line to cursor position (inclusive).
 ///
@@ -172,9 +180,9 @@ pub struct EraseLineLeft;
 
 /// Erase Line Complete (`EL`).
 ///
-/// Erase the entire line.
+/// *Sequence*: `CSI 2 K`
 ///
-/// This is the same as `CSI 2 K`.
+/// Erase the entire line.
 ///
 /// Erases all cells on the current line. The cursor position does not
 /// change.
@@ -199,10 +207,10 @@ pub struct EraseLineComplete;
 
 /// Selective Erase Display Below (`DECSED`).
 ///
+/// *Sequence*: `CSI ? Ps J` where `Ps` = 0 (default)
+///
 /// Erase from cursor position (inclusive) to the end of the screen,
 /// preserving protected cells.
-///
-/// This is the same as `CSI ? 0 J` or `CSI ? J`.
 ///
 /// Like [`EraseDisplayBelow`], but does not erase cells marked with
 /// protected state. Protected cells retain their content while unprotected
@@ -227,10 +235,10 @@ pub struct SelectiveEraseDisplayBelow;
 
 /// Selective Erase Display Above (`DECSED`).
 ///
+/// *Sequence*: `CSI ? 1 J`
+///
 /// Erase from the beginning of the screen to cursor position (inclusive),
 /// preserving protected cells.
-///
-/// This is the same as `CSI ? 1 J`.
 ///
 /// Like [`EraseDisplayAbove`], but does not erase cells marked with
 /// protected state. Protected cells retain their content while unprotected
@@ -254,6 +262,8 @@ pub struct SelectiveEraseDisplayBelow;
 pub struct SelectiveEraseDisplayAbove;
 
 /// Selective Erase Display Complete (`DECSED`).
+///
+/// *Sequence*: `CSI ? 2 J`
 ///
 /// Erase the entire screen, preserving protected cells.
 ///
@@ -279,6 +289,8 @@ pub struct SelectiveEraseDisplayAbove;
 pub struct SelectiveEraseDisplayComplete;
 
 /// Selective Erase Line Right (`DECSEL`).
+///
+/// *Sequence*: `CSI ? Ps K` where `Ps` = 0 (default)
 ///
 /// Erase from cursor position (inclusive) to the end of the line,
 /// preserving protected cells.
@@ -306,6 +318,8 @@ pub struct SelectiveEraseLineRight;
 
 /// Selective Erase Line Left (`DECSEL`).
 ///
+/// *Sequence*: `CSI ? 1 K`
+///
 /// Erase from the beginning of the line to cursor position (inclusive),
 /// preserving protected cells.
 ///
@@ -332,6 +346,8 @@ pub struct SelectiveEraseLineLeft;
 
 /// Selective Erase Line Complete (`DECSEL`).
 ///
+/// *Sequence*: `CSI ? 2 K`
+///
 /// Erase the entire line, preserving protected cells.
 ///
 /// Like [`EraseLineComplete`], but does not erase cells marked with
@@ -357,9 +373,9 @@ pub struct SelectiveEraseLineComplete;
 
 /// Insert Line (`IL`).
 ///
-/// Insert `amount` lines at the current cursor row.
+/// *Sequence*: `CSI Ps L`
 ///
-/// This is the same as `CSI Ps L`.
+/// Insert `amount` lines at the current cursor row.
 ///
 /// The contents of the line at the current cursor row and below (to the
 /// bottom-most line in the scrolling region) are shifted down by `amount`
@@ -398,9 +414,9 @@ pub struct InsertLine(pub u16);
 
 /// Delete Line (`DL`).
 ///
-/// Remove `amount` lines from the current cursor row down.
+/// *Sequence*: `CSI Ps M`
 ///
-/// This is the same as `CSI Ps M`.
+/// Remove `amount` lines from the current cursor row down.
 ///
 /// The remaining lines to the bottom margin are shifted up and space from
 /// the bottom margin up is filled with empty lines.
@@ -437,9 +453,9 @@ pub struct DeleteLine(pub u16);
 
 /// Delete Character (`DCH`).
 ///
-/// Remove `amount` characters from the current cursor position to the right.
+/// *Sequence*: `CSI Ps P`
 ///
-/// This is the same as `CSI Ps P`.
+/// Remove `amount` characters from the current cursor position to the right.
 ///
 /// The remaining characters are shifted to the left and space from the right
 /// margin is filled with spaces.
@@ -477,9 +493,9 @@ pub struct DeleteCharacter(pub u16);
 
 /// Insert Column (`DECIC`).
 ///
-/// Insert `amount` columns at the current cursor column.
+/// *Sequence*: `CSI Ps ' }`
 ///
-/// This is the same as `CSI Ps ' }`.
+/// Insert `amount` columns at the current cursor column.
 ///
 /// Inserts `amount` columns (over the whole height of the current scrolling
 /// region) from the current cursor column. The contents of the column at the
@@ -518,9 +534,9 @@ pub struct InsertColumn(pub u16);
 
 /// Delete Column (`DECDC`).
 ///
-/// Remove `amount` columns from the current cursor column to the right.
+/// *Sequence*: `CSI Ps ' ~`
 ///
-/// This is the same as `CSI Ps ' ~`.
+/// Remove `amount` columns from the current cursor column to the right.
 ///
 /// Removes `amount` columns (over the whole height of the current scrolling
 /// region) from the current cursor column to the right. The remaining
@@ -557,6 +573,8 @@ pub struct DeleteColumn(pub u16);
 
 /// Fill Screen with E (`DECALN`).
 ///
+/// *Sequence*: `ESC # 8`
+///
 /// Fill the entire screen with the character 'E'.
 ///
 /// This command is primarily used for screen alignment testing. It fills
@@ -579,6 +597,8 @@ pub struct DeleteColumn(pub u16);
 pub struct FillScreenWithE;
 
 /// Set Double Height Line Top Half (`DECDHL`).
+///
+/// *Sequence*: `ESC # 3`
 ///
 /// Display double width and double height text (top half).
 ///
@@ -613,6 +633,8 @@ pub struct SetDoubleHeightLineTopHalf;
 
 /// Set Double Height Line Bottom Half (`DECDHL`).
 ///
+/// *Sequence*: `ESC # 4`
+///
 /// Display double width and double height text (bottom half).
 ///
 /// Sets a per-line attribute that allows displaying double height text.
@@ -646,6 +668,8 @@ pub struct SetDoubleHeightLineBottomHalf;
 
 /// Set Single Width Line (`DECSWL`).
 ///
+/// *Sequence*: `ESC # 5`
+///
 /// Reset a line to normal single width and single height display mode.
 ///
 /// This undoes the effect of [`SetDoubleHeightLineTopHalf`],
@@ -669,6 +693,8 @@ pub struct SetDoubleHeightLineBottomHalf;
 pub struct SetSingleWidthLine;
 
 /// Set Double Width Line (`DECDWL`).
+///
+/// *Sequence*: `ESC # 6`
 ///
 /// Display double width and single height text.
 ///

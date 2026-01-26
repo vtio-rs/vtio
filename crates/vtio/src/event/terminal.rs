@@ -5,6 +5,10 @@ use crate::terminal_mode;
 terminal_mode!(
     /// Insert mode (`IRM`).
     ///
+    /// # Sequence
+    ///
+    /// `CSI 4 h` (set) / `CSI 4 l` (reset)
+    ///
     /// When enabled, newly printed characters are inserted at the cursor
     /// position, shifting existing characters to the right.
     ///
@@ -15,6 +19,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Cursor blinking mode (`ATT610_BLINK`).
+    ///
+    /// # Sequence
+    ///
+    /// `CSI 12 h` (set) / `CSI 12 l` (reset)
     ///
     /// If set, the cursor is blinking.
     ///
@@ -29,6 +37,10 @@ terminal_mode!(
 terminal_mode!(
     /// Linefeed/Newline mode (`LNM`).
     ///
+    /// # Sequence
+    ///
+    /// `CSI 20 h` (set) / `CSI 20 l` (reset)
+    ///
     /// Controls whether line feed characters also perform a carriage
     /// return.
     ///
@@ -40,6 +52,10 @@ terminal_mode!(
 terminal_mode!(
     /// Reserved for VT52 emulators (`DECANM`).
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 2 h` (set) / `CSI ? 2 l` (reset)
+    ///
     /// Reserved for VT52 emulation.
     ///
     /// See <https://terminalguide.namepad.de/mode/p2/> for terminal
@@ -49,6 +65,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// 132 column mode (`DECCOLM`).
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 3 h` (set) / `CSI ? 3 l` (reset)
     ///
     /// Change terminal width between 80 and 132 column mode.
     ///
@@ -78,6 +98,10 @@ terminal_mode!(
 terminal_mode!(
     /// Enable support for 132 column mode (`132COLS`).
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 40 h` (set) / `CSI ? 40 l` (reset)
+    ///
     /// Enables support for 132 column mode.
     ///
     /// See <https://terminalguide.namepad.de/mode/p40/> for terminal
@@ -87,6 +111,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Do not clear screen on 132 column mode change (`DECNCSM`).
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 95 h` (set) / `CSI ? 95 l` (reset)
     ///
     /// Do not clear screen on change of 132 column mode.
     ///
@@ -99,6 +127,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Reverse display colors (`DECSCNM`).
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 5 h` (set) / `CSI ? 5 l` (reset)
     ///
     /// Reverses the foreground and background colors of some cells.
     ///
@@ -113,6 +145,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Wraparound mode (`DECAWM`).
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 7 h` (set) / `CSI ? 7 l` (reset)
     ///
     /// Enable or disable automatic line wrapping.
     ///
@@ -136,6 +172,10 @@ terminal_mode!(
 terminal_mode!(
     /// Scrollbar visibility (`RXVT_SCROLLBAR`).
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 30 h` (set) / `CSI ? 30 l` (reset)
+    ///
     /// Show scrollbar.
     ///
     /// See <https://terminalguide.namepad.de/mode/p30/> for terminal
@@ -145,6 +185,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Alternate screen buffer (`ALTBUF`).
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 47 h` (set) / `CSI ? 47 l` (reset)
     ///
     /// Switch to alternate screen buffer.
     ///
@@ -168,6 +212,10 @@ terminal_mode!(
 terminal_mode!(
     /// Alternate screen buffer with clear on exit.
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1047 h` (set) / `CSI ? 1047 l` (reset)
+    ///
     /// Like alternate screen buffer but clears the alternate buffer on
     /// reset.
     ///
@@ -184,6 +232,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Alternate screen buffer with cursor save and clear on enter.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1049 h` (set) / `CSI ? 1049 l` (reset)
     ///
     /// Like alternate screen buffer but saves the cursor and clears the
     /// alternate buffer on activation.
@@ -204,6 +256,10 @@ terminal_mode!(
 terminal_mode!(
     /// Report focus change.
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1004 h` (set) / `CSI ? 1004 l` (reset)
+    ///
     /// When the terminal gains focus emit `ESC [ I`.
     ///
     /// When the terminal loses focus emit `ESC [ O`.
@@ -215,6 +271,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Inhibit scroll on application output.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1010 h` (set) / `CSI ? 1010 l` (reset)
     ///
     /// Disable automatic scroll to bottom when the application outputs
     /// a printable character.
@@ -229,6 +289,10 @@ terminal_mode!(
 terminal_mode!(
     /// Scroll on keyboard input.
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1011 h` (set) / `CSI ? 1011 l` (reset)
+    ///
     /// If set, scrolls to the bottom on every keypress.
     ///
     /// See <https://terminalguide.namepad.de/mode/p1011/> for terminal
@@ -238,6 +302,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Bold/blinking cells are also bright.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1021 h` (set) / `CSI ? 1021 l` (reset)
     ///
     /// If a cell is rendered in bold, and its foreground color is one
     /// of the 8 'named' dark colors, force that cell's foreground to be
@@ -255,6 +323,10 @@ terminal_mode!(
 terminal_mode!(
     /// Bracketed paste mode.
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 2004 h` (set) / `CSI ? 2004 l` (reset)
+    ///
     /// Bracket clipboard paste contents in delimiter sequences.
     ///
     /// When pasting from the (e.g. system) clipboard add `ESC [ 200 ~`
@@ -269,6 +341,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Synchronized update mode.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 2026 h` (set) / `CSI ? 2026 l` (reset)
     ///
     /// When the synchronization mode is enabled following render calls
     /// will keep rendering the last rendered state. The terminal
@@ -287,12 +363,18 @@ terminal_mode!(
 terminal_mode!(
     /// Request unsolicited DSR on color palette updates.
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 2031 h` (set) / `CSI ? 2031 l` (reset)
+    ///
     /// See <https://contour-terminal.org/vt-extensions/color-palette-update-notifications/>
     /// for more details.
     UnsolicitedColorPaletteReportMode, private = '?', params = ["2031"]
 );
 
 /// Bracketed paste start.
+///
+/// *Sequence*: `CSI 200 ~`
 #[derive(
     Debug,
     PartialOrd,
@@ -307,6 +389,8 @@ terminal_mode!(
 pub struct BracketedPasteStart;
 
 /// Bracketed paste end.
+///
+/// *Sequence*: `CSI 201 ~`
 #[derive(
     Debug,
     PartialOrd,
@@ -360,6 +444,8 @@ impl<'a> vtansi::AnsiEvent<'a> for BracketedPaste<'a> {
 
 /// Bell (BEL).
 ///
+/// *Sequence*: `0x07` (C0 control code)
+///
 /// Traditionally rings a bell.
 ///
 /// Current implementations vary in how this is interpreted. Most
@@ -383,9 +469,12 @@ pub struct Bell;
 
 /// Request text attributes (SGR) using `DECRQSS`.
 ///
+/// *Sequence*: `DCS $ q m ST`
+///
 /// Query SGR state using DEC Request Status String.
 ///
-/// The terminal replies with the current SGR attributes.
+/// The terminal replies with `DCS 1 $ r Ps ; Ps ; ... m ST` containing
+/// the current SGR attributes.
 #[derive(
     Debug,
     PartialOrd,
@@ -400,6 +489,8 @@ pub struct Bell;
 pub struct RequestTextAttributes;
 
 /// Full Reset (`RIS`).
+///
+/// *Sequence*: `ESC c`
 ///
 /// Full reset of the terminal state.
 ///
@@ -428,6 +519,8 @@ pub struct FullReset;
 
 /// Request Terminal ID (`DECID`).
 ///
+/// *Sequence*: `ESC Z`
+///
 /// Same as primary device attributes without parameters.
 ///
 /// See <https://terminalguide.namepad.de/seq/a_esc_cz/> for terminal
@@ -447,11 +540,13 @@ pub struct RequestTerminalID;
 
 /// Request primary device attributes (`DA1`).
 ///
+/// *Sequence*: `CSI c` or `CSI 0 c`
+///
 /// Query the terminal's primary device attributes.
 ///
-/// The response depends on the terminal implementation and
-/// configuration. Different terminals report different capabilities
-/// and version information.
+/// The terminal responds with `CSI ? Ps ; Ps ; ... c` where the first
+/// `Ps` is the conformance level and subsequent parameters indicate
+/// supported capabilities.
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sc/> for terminal
 /// support specifics.
@@ -478,10 +573,12 @@ impl RequestPrimaryDeviceAttributes {
 
 /// Request secondary device attributes (`DA2`).
 ///
+/// *Sequence*: `CSI > c` or `CSI > 0 c`
+///
 /// Query the terminal's secondary device attributes.
 ///
-/// This typically returns terminal type and version information.
-/// Different terminals return different identification codes.
+/// The terminal responds with `CSI > Ps ; Ps ; Ps c` containing
+/// terminal type, firmware version, and ROM cartridge registration number.
 ///
 /// See <https://terminalguide.namepad.de/seq/> for terminal support
 /// specifics.
@@ -500,11 +597,12 @@ pub struct RequestSecondaryDeviceAttributes;
 
 /// Request tertiary device attributes (`DA3`).
 ///
+/// *Sequence*: `CSI = 0 c`
+///
 /// Query the terminal's tertiary device attributes.
 ///
-/// This is less commonly supported than DA1 and DA2. When supported,
-/// it typically returns additional terminal identification
-/// information.
+/// The terminal responds with `DCS ! | D...D ST` where `D...D` is the
+/// unit ID as a hex string.
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_sc__r/> for terminal support
 /// specifics.
@@ -701,6 +799,8 @@ impl<'a> vtansi::TryFromAnsiIter<'a> for Capabilities {
 
 /// Response to primary device attributes request (`DA1`).
 ///
+/// *Sequence*: `CSI ? Ps ; Ps ; ... c`
+///
 /// Send terminal capabilities in response to a DA1 query.
 ///
 /// The response format is `CSI ? [level] ; [cap1] ; [cap2] ; ... c`.
@@ -720,6 +820,8 @@ pub struct PrimaryDeviceAttributesResponse {
 }
 
 /// Response to secondary device attributes request (`DA2`).
+///
+/// *Sequence*: `CSI > Ps ; Ps ; Ps c`
 ///
 /// Send terminal type and version information in response to a DA2
 /// query.
@@ -762,6 +864,8 @@ pub struct SecondaryDeviceAttributesResponse {
 
 /// Response to tertiary device attributes request (`DECRPTUI`).
 ///
+/// *Sequence*: `DCS ! | Pt ST`
+///
 /// Sent in response to a DA3 query, e.g [`RequestTerminalUnitId`].
 ///
 /// The response format is `DCS ! | [hex_string] ST` where `hex_string`
@@ -793,6 +897,8 @@ pub struct TertiaryDeviceAttributesResponse {
 }
 
 /// Select VT-XXX Conformance Level (`DECSCL`).
+///
+/// *Sequence*: `CSI Ps ; Ps " p`
 ///
 /// Set the conformance level and encoding for C1 controls in terminal
 /// replies.
@@ -828,6 +934,8 @@ pub struct SelectVTConformanceLevel {
 }
 
 /// Request VT-xxx Conformance Level and C1 Encoding.
+///
+/// *Sequence*: `DCS $ q " p ST`
 ///
 /// Query state settable with select vt-xxx conformance level.
 ///
@@ -996,6 +1104,8 @@ impl<'a> vtansi::TryFromAnsi<'a> for HexStringList {
 
 /// Request termcap/terminfo capability (`XTGETTCAP`).
 ///
+/// *Sequence*: `DCS + q Pt ST`
+///
 /// Query keyboard mapping or miscellaneous terminal information using
 /// the xterm termcap query mechanism.
 ///
@@ -1161,6 +1271,8 @@ impl<'a> vtansi::TryFromAnsi<'a> for TermcapQueryResultList {
 
 /// Response to termcap/terminfo capability query (`XTGETTCAP`).
 ///
+/// *Sequence*: `DCS Ps + r Pt ST`
+///
 /// Response from the terminal to [`RequestTermcap`].
 ///
 /// The response format depends on whether the query was successful:
@@ -1289,6 +1401,8 @@ impl Default for TermcapQueryResponse {
 
 /// Request terminal name and version (`XTVERSION`).
 ///
+/// *Sequence*: `CSI > 0 q`
+///
 /// Query the terminal's name and version string using the xterm
 /// XTVERSION extension.
 ///
@@ -1321,6 +1435,8 @@ impl Default for TermcapQueryResponse {
 pub struct RequestTerminalNameAndVersion;
 
 /// Response to terminal name and version request (`XTVERSION`).
+///
+/// *Sequence*: `DCS > | Pt ST`
 ///
 /// Response from the terminal to [`RequestTerminalNameAndVersion`].
 ///

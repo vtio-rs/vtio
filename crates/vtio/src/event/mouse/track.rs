@@ -2,6 +2,8 @@
 
 /// Track Mouse.
 ///
+/// *Sequence*: `CSI Ps ; Ps ; Ps ; Ps ; Ps T`
+///
 /// This sequence is used with mouse highlight mode to communicate the
 /// selection start and allowed rows.
 ///

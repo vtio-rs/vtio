@@ -1198,7 +1198,9 @@ impl AnsiEncode for ExtFnKey {
     }
 }
 
-/// Special keys using `CSI Ps ~` sequence (`Insert`, `Delete`, `PageUp`, `PageDown`, `Home`, `End`, `F5`-`F20`)
+/// Special keys using `CSI Ps ~` sequence (`Insert`, `Delete`, `PageUp`, `PageDown`, `Home`, `End`, `F5`-`F20`).
+///
+/// *Sequence*: `CSI Ps ; Pm ~`
 #[derive(
     Debug,
     PartialOrd,
@@ -1263,6 +1265,8 @@ fn parse_csi_u_text(bytes: &[u8]) -> Option<String> {
 }
 
 /// CSI u keyboard event from the Kitty keyboard protocol.
+///
+/// *Sequence*: `CSI Ps ; Pm u`
 ///
 /// This parses sequences of the form:
 /// ```text
@@ -1385,6 +1389,8 @@ impl From<CsiUKeyEvent> for KeyEvent {
 }
 
 /// CSI u keyboard event input sequence.
+///
+/// *Sequence*: `CSI Ps ; Pm u`
 #[derive(Debug, Clone, PartialEq, Eq, vtansi::derive::AnsiInput)]
 #[vtansi(csi, into = KeyEvent, finalbyte = 'u')]
 pub struct CsiUKeyEventSeq(#[vtansi(flatten)] pub CsiUKeyEvent);
@@ -1496,6 +1502,9 @@ impl<'a> TryFromAnsi<'a> for FnKey {
     }
 }
 
+/// Function key sequence without modifiers.
+///
+/// *Sequence*: `CSI A` / `CSI B` / `CSI C` / `CSI D` / `CSI F` / `CSI H` / `CSI P` / `CSI Q` / `CSI R` / `CSI S` / `CSI Z`
 #[derive(
     Debug,
     PartialOrd,
@@ -1525,6 +1534,9 @@ impl From<FnKeySeq> for KeyEvent {
     }
 }
 
+/// Function key sequence with modifiers.
+///
+/// *Sequence*: `CSI 1 ; Pm A` / `CSI 1 ; Pm B` / etc.
 #[derive(
     Debug,
     PartialOrd,
@@ -1556,7 +1568,11 @@ impl From<ModifiedFnKeySeq> for KeyEvent {
 }
 
 key_event! {
-    /// SS3 keys (ESC O) for application cursor mode and keypad
+    /// SS3 keys (ESC O) for application cursor mode and keypad.
+    ///
+    /// # Sequence
+    ///
+    /// `SS3 Ps` (e.g., `ESC O A` for Up arrow in application mode)
     #[vtansi(ss3)]
     Ss3Key
 }

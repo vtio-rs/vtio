@@ -18,6 +18,10 @@ use crate::terminal_mode;
 terminal_mode!(
     /// Mouse click-only tracking (`X10_MOUSE`).
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 9 h` (set) / `CSI ? 9 l` (reset)
+    ///
     /// Send mouse button press for left, middle, and right mouse
     /// buttons.
     ///
@@ -32,6 +36,10 @@ terminal_mode!(
 terminal_mode!(
     /// Mouse down+up tracking.
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1000 h` (set) / `CSI ? 1000 l` (reset)
+    ///
     /// Send mouse button press and release. Also send scroll wheel
     /// events.
     ///
@@ -42,6 +50,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Mouse highlight mode.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1001 h` (set) / `CSI ? 1001 l` (reset)
     ///
     /// Like mouse down+up tracking, but shows a text selection.
     ///
@@ -60,6 +72,10 @@ terminal_mode!(
 terminal_mode!(
     /// Mouse click and dragging tracking.
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1002 h` (set) / `CSI ? 1002 l` (reset)
+    ///
     /// Send mouse button press and release. Send mouse move events
     /// while a button is pressed. Also send scroll wheel events.
     ///
@@ -70,6 +86,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Mouse tracking with movement.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1003 h` (set) / `CSI ? 1003 l` (reset)
     ///
     /// Send mouse button press and release. Always send mouse move
     /// events. Also send scroll wheel events.
@@ -91,6 +111,10 @@ terminal_mode!(
 terminal_mode!(
     /// Mouse report format multibyte mode.
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1005 h` (set) / `CSI ? 1005 l` (reset)
+    ///
     /// Encodes mouse information with variable length byte
     /// sequences.
     ///
@@ -107,6 +131,10 @@ terminal_mode!(
 terminal_mode!(
     /// Mouse reporting format digits (SGR mode).
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1006 h` (set) / `CSI ? 1006 l` (reset)
+    ///
     /// Encodes mouse information with digit sequences.
     ///
     /// Mouse information is reported as `ESC [ < btn ; column ; row M`
@@ -121,6 +149,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Mouse reporting format urxvt.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1015 h` (set) / `CSI ? 1015 l` (reset)
     ///
     /// Encodes mouse information with digit sequences.
     ///
@@ -140,6 +172,10 @@ terminal_mode!(
 
 terminal_mode!(
     /// Send cursor keys on mouse wheel on alternative screen.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1007 h` (set) / `CSI ? 1007 l` (reset)
     ///
     /// When the alternate screen is active and the mouse wheel is
     /// used send arrow up and down.
@@ -185,6 +221,8 @@ ansi_composite! {
 }
 
 /// Linux Mouse Pointer Style (`LINUX_MOUSE_POINTER_STYLE`).
+///
+/// *Sequence*: `CSI ? Ps ; Ps m`
 ///
 /// Select Linux mouse pointer style with control over appearance.
 ///

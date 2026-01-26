@@ -42,6 +42,8 @@ impl AnsiEncode for MouseEvent {
 
 /// Mouse event in SGR (digits) reporting format.
 ///
+/// *Sequence*: `CSI < Pb ; Px ; Py M` (press) / `CSI < Pb ; Px ; Py m` (release)
+///
 /// This structure parses mouse events using the SGR mouse reporting
 /// format, which uses sequences like `ESC[<btn;col;row;M` for button
 /// press/movement and `ESC[<btn;col;row;m` for button release.
@@ -138,6 +140,8 @@ impl AnsiEncode for SgrMouseEvent {
 
 /// SGR mouse event input sequence wrapper.
 ///
+/// *Sequence*: `CSI < Pb ; Px ; Py M` (press) / `CSI < Pb ; Px ; Py m` (release)
+///
 /// This is the CSI sequence wrapper that hooks into the vtansi parsing system.
 /// It handles the final byte ('M' for press, 'm' for release) and delegates
 /// parameter parsing to `SgrMouseEvent`.
@@ -169,6 +173,8 @@ impl From<SgrMouseEventSeq> for MouseEvent {
 // ============================================================================
 
 /// Mouse event in urxvt reporting format.
+///
+/// *Sequence*: `CSI Pb ; Px ; Py M`
 ///
 /// This structure parses mouse events using the urxvt mouse reporting
 /// format, which uses sequences like `ESC [ btn ; column ; row M`.
@@ -270,6 +276,8 @@ impl AnsiEncode for UrxvtMouseEvent {
 }
 
 /// urxvt mouse event input sequence wrapper.
+///
+/// *Sequence*: `CSI Pb ; Px ; Py M`
 ///
 /// This is the CSI sequence wrapper that hooks into the vtansi parsing system.
 /// It delegates parameter parsing to `UrxvtMouseEvent`.
@@ -405,6 +413,8 @@ pub fn parse_mouse_event_bytes(bytes: &[u8]) -> Result<MouseEvent, ParseError> {
 
 /// Mouse event in default reporting format.
 ///
+/// *Sequence*: `CSI M Cb Cx Cy`
+///
 /// This structure encodes mouse events using the default mouse reporting
 /// format, which uses `ESC [ M btn col row` with each value encoded as
 /// a single byte (value + 32).
@@ -468,6 +478,8 @@ impl AnsiEncode for DefaultMouseEvent {
 // ============================================================================
 
 /// Mouse event in multibyte (p1005) reporting format.
+///
+/// *Sequence*: `CSI M Cb Cx Cy` (UTF-8 encoded values)
 ///
 /// This structure encodes mouse events using the UTF-8 multibyte mouse
 /// reporting format, which uses `ESC [ M btn col row` with each value

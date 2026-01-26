@@ -24,6 +24,8 @@
 //! any subsequent parameters.
 
 /// Current location report (hostname and directory).
+///
+/// *Sequence*: `OSC 7 ; Pt ST`
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
 )]
@@ -31,6 +33,8 @@
 pub struct CurrentLocation<'a>(pub &'a str);
 
 /// A command that marks the beginning of a shell prompt.
+///
+/// *Sequence*: `OSC 133 ; A ST`
 ///
 /// This sequence (OSC 133;A) indicates where a new prompt starts. Terminal
 /// emulators can use this to enable features like jumping between prompts.
@@ -48,6 +52,8 @@ pub struct PromptStart;
 /// A command that marks the end of a shell prompt and the beginning of user
 /// input.
 ///
+/// *Sequence*: `OSC 133 ; B ST`
+///
 /// This sequence (OSC 133;B) indicates where the prompt ends and user input
 /// begins. Terminal emulators can use this to distinguish between the
 /// prompt and the user's command.
@@ -63,6 +69,8 @@ pub struct PromptStart;
 pub struct PromptEnd;
 
 /// A command that marks the start of command execution and output.
+///
+/// *Sequence*: `OSC 133 ; C ST`
 ///
 /// This sequence (OSC 133;C) indicates where the command output begins.
 /// Terminal emulators can use this to enable features like selecting
@@ -80,6 +88,8 @@ pub struct PromptEnd;
 pub struct CommandStart;
 
 /// A command that marks the end of command output.
+///
+/// *Sequence*: `OSC 133 ; D ST` or `OSC 133 ; D ; Ps ST`
 ///
 /// This sequence (`OSC 133;D` or OSC `133;D;exit_code`) indicates where the
 /// command output ends. It can optionally include the command's exit code.

@@ -2,6 +2,8 @@
 
 /// Enable UTF-8 mode.
 ///
+/// *Sequence*: `ESC % G`
+///
 /// Set character set to UTF-8.
 ///
 /// See <https://terminalguide.namepad.de/seq/a_esc_zpercent_cg/> for
@@ -21,6 +23,8 @@ pub struct EnableUTF8Mode;
 
 /// Disable UTF-8 mode.
 ///
+/// *Sequence*: `ESC % @`
+///
 /// See <https://terminalguide.namepad.de/seq/a_esc_zpercent_x40_at/> for
 /// terminal support specifics and details.
 #[derive(
@@ -37,6 +41,8 @@ pub struct EnableUTF8Mode;
 pub struct DisableUTF8Mode;
 
 /// Shift Out (SO).
+///
+/// *Sequence*: `0x0E` (C0 control code)
 ///
 /// Invoke G1 character set into GL (left half of character table).
 /// Maps G1 character set into the left (GL) character positions.
@@ -58,6 +64,8 @@ pub struct ShiftOut;
 
 /// Shift In (SI).
 ///
+/// *Sequence*: `0x0F` (C0 control code)
+///
 /// Invoke G0 character set into GL (left half of character table).
 /// Maps G0 character set into the left (GL) character positions.
 ///
@@ -78,6 +86,8 @@ pub struct ShiftIn;
 
 /// Locking Shift 2 (LS2).
 ///
+/// *Sequence*: `ESC n`
+///
 /// Invoke G2 character set into GL (left half of character table).
 ///
 /// See <https://terminalguide.namepad.de/seq/a_esc_sn/> for terminal support
@@ -96,6 +106,8 @@ pub struct ShiftIn;
 pub struct LockingShift2;
 
 /// Locking Shift 3 (LS3).
+///
+/// *Sequence*: `ESC o`
 ///
 /// Invoke G3 character set into GL (left half of character table).
 ///
@@ -116,6 +128,8 @@ pub struct LockingShift3;
 
 /// Locking Shift 1 Right (LS1R).
 ///
+/// *Sequence*: `ESC ~`
+///
 /// Invoke G1 character set into GR (right half of character table).
 ///
 /// See <https://terminalguide.namepad.de/seq/a_esc_x7e_tilde/> for terminal
@@ -134,6 +148,8 @@ pub struct LockingShift3;
 pub struct LockingShift1Right;
 
 /// Locking Shift 2 Right (LS2R).
+///
+/// *Sequence*: `ESC }`
 ///
 /// Invoke G2 character set into GR (right half of character table).
 ///
@@ -154,6 +170,8 @@ pub struct LockingShift2Right;
 
 /// Locking Shift 3 Right (LS3R).
 ///
+/// *Sequence*: `ESC |`
+///
 /// Invoke G3 character set into GR (right half of character table).
 ///
 /// See <https://terminalguide.namepad.de/seq/a_esc_x7c_pipe/> for terminal
@@ -173,6 +191,8 @@ pub struct LockingShift3Right;
 
 /// Single Shift 2 (SS2).
 ///
+/// *Sequence*: `ESC N`
+///
 /// Temporarily invoke G2 character set for the next character only.
 ///
 /// See <https://terminalguide.namepad.de/seq/a_esc_cn/> for terminal
@@ -191,6 +211,8 @@ pub struct LockingShift3Right;
 pub struct SingleShift2;
 
 /// Single Shift 3 (SS3).
+///
+/// *Sequence*: `ESC O`
 ///
 /// Temporarily invoke G3 character set for the next character only.
 ///
@@ -366,6 +388,8 @@ pub enum Charset96Code {
 
 /// Designate G0 Character Set (94 characters).
 ///
+/// *Sequence*: `ESC ( Pc`
+///
 /// Designate a 94-character set to the G0 character set register.
 /// This is part of the ISO-2022 character set designation mechanism.
 ///
@@ -388,6 +412,8 @@ pub struct DesignateG0 {
 }
 
 /// Designate G1 Character Set (94 characters).
+///
+/// *Sequence*: `ESC ) Pc`
 ///
 /// Designate a 94-character set to the G1 character set register.
 /// This is part of the ISO-2022 character set designation mechanism.
@@ -412,6 +438,8 @@ pub struct DesignateG1 {
 
 /// Designate G2 Character Set (94 characters).
 ///
+/// *Sequence*: `ESC * Pc`
+///
 /// Designate a 94-character set to the G2 character set register.
 /// This is part of the ISO-2022 character set designation mechanism.
 ///
@@ -434,6 +462,8 @@ pub struct DesignateG2 {
 }
 
 /// Designate G3 Character Set (94 characters).
+///
+/// *Sequence*: `ESC + Pc`
 ///
 /// Designate a 94-character set to the G3 character set register.
 /// This is part of the ISO-2022 character set designation mechanism.
@@ -458,6 +488,8 @@ pub struct DesignateG3 {
 
 /// Designate G1 Character Set (96 characters).
 ///
+/// *Sequence*: `ESC - Pc`
+///
 /// Designate a 96-character set to the G1 character set register.
 /// This is part of the ISO-2022 character set designation mechanism.
 ///
@@ -481,6 +513,8 @@ pub struct DesignateG1_96 {
 
 /// Designate G2 Character Set (96 characters).
 ///
+/// *Sequence*: `ESC . Pc`
+///
 /// Designate a 96-character set to the G2 character set register.
 /// This is part of the ISO-2022 character set designation mechanism.
 ///
@@ -503,6 +537,8 @@ pub struct DesignateG2_96 {
 }
 
 /// Designate G3 Character Set (96 characters).
+///
+/// *Sequence*: `ESC / Pc`
 ///
 /// Designate a 96-character set to the G3 character set register.
 /// This is part of the ISO-2022 character set designation mechanism.

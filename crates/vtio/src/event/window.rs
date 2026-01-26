@@ -60,6 +60,8 @@ pub enum MaximizeMode {
 
 /// Set terminal window title and icon name.
 ///
+/// *Sequence*: `OSC 0 ; Pt ST`
+///
 /// Set both the window title and icon name to the same string.
 ///
 /// See <https://terminalguide.namepad.de/seq/osc-0/> for
@@ -103,6 +105,8 @@ impl SetTitleAndIconNameOwned {
 }
 
 /// Set terminal window title.
+///
+/// *Sequence*: `OSC 2 ; Pt ST`
 ///
 /// Set the window title.
 ///
@@ -148,6 +152,8 @@ impl SetTitleOwned {
 
 /// Set icon name.
 ///
+/// *Sequence*: `OSC 1 ; Pt ST`
+///
 /// Set the icon name for the terminal window.
 ///
 /// See <https://terminalguide.namepad.de/seq/osc-1/> for
@@ -192,8 +198,10 @@ impl SetIconNameOwned {
 
 /// Get terminal window title.
 ///
+/// *Sequence*: `CSI 21 t`
+///
 /// Request the current window title. The terminal responds with
-/// `OSC 2 ; title ST` or `OSC l title ST`.
+/// `OSC 2 ; Pt ST` or `OSC l Pt ST`.
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_st-21/> for
 /// terminal support specifics.
@@ -205,8 +213,10 @@ pub struct GetTitle;
 
 /// Get icon name.
 ///
+/// *Sequence*: `CSI 20 t`
+///
 /// Request the current icon name. The terminal responds with
-/// `OSC 1 ; name ST` or `OSC L name ST`.
+/// `OSC 1 ; Pt ST` or `OSC L Pt ST`.
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_st-20/> for
 /// terminal support specifics.
@@ -217,6 +227,8 @@ pub struct GetTitle;
 pub struct GetIconName;
 
 /// Push terminal title onto stack.
+///
+/// *Sequence*: `CSI 22 ; Ps t`
 ///
 /// Push the current title onto an internal stack. The optional
 /// parameter specifies which title to push.
@@ -234,6 +246,8 @@ pub struct PushTitle {
 
 /// Pop terminal title from stack.
 ///
+/// *Sequence*: `CSI 23 ; Ps t`
+///
 /// Pop a title from the internal stack and set it as the current title.
 /// The optional parameter specifies which title to pop.
 ///
@@ -250,6 +264,8 @@ pub struct PopTitle {
 
 /// Restore terminal window.
 ///
+/// *Sequence*: `CSI 1 t`
+///
 /// Restore (de-iconify) the terminal window.
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_st-1/> for
@@ -261,6 +277,8 @@ pub struct PopTitle {
 pub struct RestoreWindow;
 
 /// Minimize terminal window.
+///
+/// *Sequence*: `CSI 2 t`
 ///
 /// Minimize (iconify) the terminal window.
 ///
@@ -274,6 +292,8 @@ pub struct MinimizeWindow;
 
 /// Raise terminal window.
 ///
+/// *Sequence*: `CSI 5 t`
+///
 /// Raise the terminal window to the front of the stacking order.
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_st-5/> for
@@ -286,6 +306,8 @@ pub struct RaiseWindow;
 
 /// Lower terminal window.
 ///
+/// *Sequence*: `CSI 6 t`
+///
 /// Lower the terminal window to the back of the stacking order.
 ///
 /// See <https://terminalguide.namepad.de/seq/csi_st-6/> for
@@ -297,6 +319,8 @@ pub struct RaiseWindow;
 pub struct LowerWindow;
 
 /// Refresh terminal window.
+///
+/// *Sequence*: `CSI 7 t`
 ///
 /// Refresh (redraw) the terminal window.
 ///
@@ -343,7 +367,11 @@ pub struct SetWindowSizePixels {
     pub width: u16,
 }
 
-/// Set terminal size in character cells.
+/// Set terminal size in characters.
+///
+/// *Sequence*: `CSI 8 ; Ps ; Ps t`
+///
+/// Where the first `Ps` is the number of rows and the second `Ps` is the number of columns.
 ///
 /// Resize the terminal window to the specified size in character cells
 /// (rows and columns).
@@ -468,6 +496,16 @@ pub struct ReportWindowSizePixels {
 
 /// Report screen size in pixels.
 ///
+/// *Sequence*: `CSI 15 t`
+///
+/// Request the screen size in pixels. The terminal responds with
+/// `CSI 5 ; Ps ; Ps t` ([`ScreenSizePixelsReport`]).
+///
+/// *Sequence*: `CSI 14 ; Ps t`
+///
+/// Request the window size in pixels. The terminal responds with
+/// `CSI 4 ; Ps ; Ps t` ([`WindowSizePixelsReport`]).
+///
 /// Request the screen size in pixels.
 /// The terminal responds with `CSI 5 ; height ; width t`.
 ///
@@ -481,6 +519,11 @@ pub struct ReportScreenSizePixels;
 
 /// Report cell size in pixels.
 ///
+/// *Sequence*: `CSI 16 t`
+///
+/// Request the character cell size in pixels. The terminal responds with
+/// `CSI 6 ; Ps ; Ps t` ([`CellSizePixelsReport`]).
+///
 /// Request the character cell size in pixels.
 /// The terminal responds with `CSI 6 ; height ; width t`.
 ///
@@ -492,7 +535,17 @@ pub struct ReportScreenSizePixels;
 #[vtansi(csi, params = ["16"], finalbyte = 't')]
 pub struct ReportCellSizePixels;
 
-/// Report terminal size in character cells.
+/// Report screen size in characters.
+///
+/// *Sequence*: `CSI 19 t`
+///
+/// Request the screen size in characters. The terminal responds with
+/// `CSI 9 ; Ps ; Ps t` ([`ScreenSizeReport`]).
+///
+/// *Sequence*: `CSI 18 t`
+///
+/// Request the terminal size in characters. The terminal responds with
+/// `CSI 8 ; Ps ; Ps t` ([`SizeReport`]).
 ///
 /// Request the terminal size in character cells (rows and columns).
 /// The terminal responds with `CSI 8 ; rows ; cols t`.
@@ -546,6 +599,8 @@ pub enum WindowState {
 
 /// Window state report.
 ///
+/// *Sequence*: `CSI Ps t` where `Ps` is 1 (not iconified) or 2 (iconified).
+///
 /// Response to [`ReportWindowState`] request.
 /// Report whether the window is iconified or not.
 #[derive(
@@ -557,6 +612,8 @@ pub struct WindowStateReport {
 }
 
 /// Window position report.
+///
+/// *Sequence*: `CSI 3 ; Ps ; Ps t`
 ///
 /// Response to [`ReportWindowPosition`] request.
 /// Report the window position in pixels.
@@ -573,6 +630,8 @@ pub struct WindowPositionReport {
 
 /// Window size in pixels report.
 ///
+/// *Sequence*: `CSI 4 ; Ps ; Ps t`
+///
 /// Response to [`ReportWindowSizePixels`] request.
 /// Report the window size in pixels.
 #[derive(
@@ -588,6 +647,8 @@ pub struct WindowSizePixelsReport {
 
 /// Screen size in pixels report.
 ///
+/// *Sequence*: `CSI 5 ; Ps ; Ps t`
+///
 /// Response to [`ReportScreenSizePixels`] request.
 /// Report the screen size in pixels.
 #[derive(
@@ -602,6 +663,8 @@ pub struct ScreenSizePixelsReport {
 }
 
 /// Cell size in pixels report.
+///
+/// *Sequence*: `CSI 6 ; Ps ; Ps t`
 ///
 /// Response to [`ReportCellSizePixels`] request.
 /// Report the character cell size in pixels.

@@ -21,6 +21,8 @@ use vtansi::derive::{FromAnsi, ToAnsi};
 
 /// Set a mark at the current cursor position.
 ///
+/// *Sequence*: `OSC 1337 ; SetMark ST`
+///
 /// Equivalent to the "Set Mark" command (cmd-shift-M).
 /// The mark can be jumped to later with cmd-shift-J.
 #[derive(
@@ -31,6 +33,8 @@ pub struct SetMark;
 
 /// Bring iTerm2 window to the foreground.
 ///
+/// *Sequence*: `OSC 1337 ; StealFocus ST`
+///
 /// Force the terminal to steal focus from other applications.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
@@ -39,6 +43,8 @@ pub struct SetMark;
 pub struct StealFocus;
 
 /// Clear the scrollback history.
+///
+/// *Sequence*: `OSC 1337 ; ClearScrollback ST`
 ///
 /// Erase all content in the scrollback buffer, keeping only the
 /// visible screen content.
@@ -50,6 +56,8 @@ pub struct ClearScrollback;
 
 /// End a copy-to-clipboard operation.
 ///
+/// *Sequence*: `OSC 1337 ; EndCopy ST`
+///
 /// Marks the end of text being copied to the pasteboard. Must be
 /// preceded by a `CopyToClipboard` command.
 #[derive(
@@ -59,6 +67,8 @@ pub struct ClearScrollback;
 pub struct EndCopy;
 
 /// Report the cell size in points.
+///
+/// *Sequence*: `OSC 1337 ; ReportCellSize ST`
 ///
 /// The terminal responds with:
 /// `OSC 1337 ; ReportCellSize=[height];[width];[scale] ST`
@@ -73,6 +83,8 @@ pub struct ReportCellSize;
 
 /// Push the current touch bar key labels onto a stack.
 ///
+/// *Sequence*: `OSC 1337 ; PushKeyLabels ST`
+///
 /// Save the current set of function key labels for later restoration
 /// with `PopKeyLabels`.
 #[derive(
@@ -83,6 +95,8 @@ pub struct PushKeyLabels;
 
 /// Pop touch bar key labels from the stack.
 ///
+/// *Sequence*: `OSC 1337 ; PopKeyLabels ST`
+///
 /// Restore the most recently pushed set of function key labels.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
@@ -92,6 +106,8 @@ pub struct PopKeyLabels;
 
 /// Disinter a buried session.
 ///
+/// *Sequence*: `OSC 1337 ; Disinter ST`
+///
 /// Restore a previously buried session to the active state.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
@@ -100,6 +116,8 @@ pub struct PopKeyLabels;
 pub struct Disinter;
 
 /// Clear captured output.
+///
+/// *Sequence*: `OSC 1337 ; ClearCapturedOutput ST`
 ///
 /// Erase the current captured output buffer for this session.
 #[derive(
@@ -136,6 +154,8 @@ pub enum CursorShapeValue {
 }
 
 /// Set the cursor shape.
+///
+/// *Sequence*: `OSC 1337 ; CursorShape = Ps ST`
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
 )]
@@ -146,6 +166,8 @@ pub struct CursorShape {
 
 /// Set the current directory path.
 ///
+/// *Sequence*: `OSC 1337 ; CurrentDir = Pt ST`
+///
 /// Inform iTerm2 of the current working directory to enable
 /// semantic history and other path-based features.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput)]
@@ -155,6 +177,8 @@ pub struct CurrentDir<'a> {
 }
 
 /// Change the session's profile.
+///
+/// *Sequence*: `OSC 1337 ; SetProfile = Pt ST`
 ///
 /// Switch to a different profile by name. The profile must exist
 /// in iTerm2's configuration.
@@ -195,6 +219,8 @@ pub enum Clipboard {
 
 /// Start copying text to a clipboard.
 ///
+/// *Sequence*: `OSC 1337 ; CopyToClipboard = Ps ST`
+///
 /// All text received after this command is placed in the specified
 /// pasteboard until `EndCopy` is received.
 #[derive(
@@ -206,6 +232,8 @@ pub struct CopyToClipboard {
 }
 
 /// Set background image from a file path.
+///
+/// *Sequence*: `OSC 1337 ; SetBackgroundImageFile = Pt ST`
 ///
 /// The value should be a base64-encoded filename. An empty string
 /// removes the background image. User confirmation is required as
@@ -248,6 +276,8 @@ pub enum AttentionMode {
 }
 
 /// Request attention with visual effects.
+///
+/// *Sequence*: `OSC 1337 ; RequestAttention = Ps ST`
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
 )]
@@ -280,6 +310,8 @@ pub enum UnicodeVersionValue {
 }
 
 /// Set Unicode width table version.
+///
+/// *Sequence*: `OSC 1337 ; UnicodeVersion = Ps ST`
 ///
 /// Can also push/pop values on a stack using special string values
 /// (use `GenericCommand` for that).
@@ -325,6 +357,8 @@ impl<'a> vtansi::TryFromAnsi<'a> for Iterm2Bool {
 }
 
 /// Enable or disable the cursor guide (highlight cursor line).
+///
+/// *Sequence*: `OSC 1337 ; HighlightCursorLine = Ps ST`
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
 )]
@@ -339,6 +373,8 @@ pub struct HighlightCursorLine {
 }
 
 /// Copy text to the general clipboard.
+///
+/// *Sequence*: `OSC 1337 ; Copy = Pt ST`
 #[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput)]
 #[vtansi(osc, number = "1337", data = "Copy", data_delimiter = '=')]
 pub struct Copy<'a> {
@@ -346,6 +382,8 @@ pub struct Copy<'a> {
 }
 
 /// Report the value of a session variable.
+///
+/// *Sequence*: `OSC 1337 ; ReportVariable = Pt ST`
 #[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput)]
 #[vtansi(osc, number = "1337", data = "ReportVariable", data_delimiter = '=')]
 pub struct ReportVariable<'a> {
@@ -353,6 +391,8 @@ pub struct ReportVariable<'a> {
 }
 
 /// Request file upload from the user.
+///
+/// *Sequence*: `OSC 1337 ; RequestUpload = Pt ST`
 #[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput)]
 #[vtansi(osc, number = "1337", data = "RequestUpload", data_delimiter = '=')]
 pub struct RequestUpload<'a> {
@@ -360,6 +400,8 @@ pub struct RequestUpload<'a> {
 }
 
 /// Open a URL in the default browser.
+///
+/// *Sequence*: `OSC 1337 ; OpenUrl = Pt ST`
 #[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput)]
 #[vtansi(osc, number = "1337", data = "OpenUrl", data_delimiter = '=')]
 pub struct OpenUrl<'a> {
@@ -450,6 +492,8 @@ impl vtansi::AnsiEncode for KeyValueList<'_> {
 }
 
 /// Generic command for arbitrary key=value pairs.
+///
+/// *Sequence*: `OSC 1337 ; key=value ; ... ST`
 ///
 /// Use this for unrecognized or custom iTerm2 commands that follow
 /// the key=value pattern. Multiple pairs can be separated by semicolons.
@@ -550,11 +594,11 @@ impl AnnotationCoords {
 
 /// Add an annotation at the current cursor position.
 ///
+/// *Sequence*: `OSC 1337 ; AddAnnotation = [length|]message[|x|y] ST`
+///
 /// Annotations appear as clickable markers in the terminal that can have
 /// associated text messages and optional length/position parameters.
-///
-/// The wire format is: `OSC 1337;AddAnnotation=[length|]message[|x|y] ST`
-/// where length and coordinates are optional.
+/// The length and coordinates are optional.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput)]
 #[vtansi(
     osc,
@@ -570,11 +614,10 @@ pub struct AddAnnotation<'a> {
 
 /// Add a hidden annotation at the current cursor position.
 ///
-/// Similar to `AddAnnotation`, but the annotation is not visible in the
-/// terminal UI by default.
+/// *Sequence*: `OSC 1337 ; AddHiddenAnnotation = [length|]message[|x|y] ST`
 ///
-/// The wire format is: `OSC 1337;AddHiddenAnnotation=[length|]message[|x|y] ST`
-/// where length and coordinates are optional.
+/// Similar to `AddAnnotation`, but the annotation is not visible in the
+/// terminal UI by default. The length and coordinates are optional.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput)]
 #[vtansi(
     osc,

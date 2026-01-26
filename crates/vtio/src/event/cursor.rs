@@ -31,6 +31,10 @@ macro_rules! dcs_bitflags {
 terminal_mode!(
     /// Cursor Origin Mode (`DECOM`).
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 6 h` (set) / `CSI ? 6 l` (reset)
+    ///
     /// If set, the origin of the coordinate system is relative to the
     /// current scroll region.
     ///
@@ -53,6 +57,10 @@ terminal_mode!(
 terminal_mode!(
     /// Cursor Blinking (`ATT610_BLINK`).
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 12 h` (set) / `CSI ? 12 l` (reset)
+    ///
     /// If set, the cursor is blinking.
     ///
     /// This mode interacts with the blinking part of the Select Cursor Style
@@ -70,6 +78,10 @@ terminal_mode!(
 terminal_mode!(
     /// Cursor Visibility Mode (`DECTCEM`).
     ///
+    /// # Sequence
+    ///
+    /// `CSI ? 25 h` (set) / `CSI ? 25 l` (reset)
+    ///
     /// Set visibility of the cursor.
     ///
     /// If set, the cursor is visible. If reset, the cursor is hidden.
@@ -80,6 +92,8 @@ terminal_mode!(
 );
 
 /// Save cursor (`DECSC`).
+///
+/// *Sequence*: `ESC 7`
 ///
 /// Save cursor position and other state.
 ///
@@ -119,6 +133,8 @@ pub struct SaveCursor;
 
 /// Restore cursor (`DECRC`).
 ///
+/// *Sequence*: `ESC 8`
+///
 /// Restore cursor position and other state.
 ///
 /// The primary and alternate screen have distinct save state.
@@ -155,6 +171,8 @@ pub struct RestoreCursor;
 
 /// Backspace (`BS`).
 ///
+/// *Sequence*: `0x08` (C0 control code)
+///
 /// Move the cursor one position to the left.
 ///
 /// If the cursor is on the left-most column, the behavior is implementation
@@ -179,6 +197,8 @@ pub struct Backspace;
 
 /// Horizontal Tab (`TAB`).
 ///
+/// *Sequence*: `0x09` (C0 control code)
+///
 /// Move the cursor to the next tab stop.
 ///
 /// If there are no more tab stops, the cursor is moved to the right-most
@@ -202,6 +222,8 @@ pub struct Backspace;
 pub struct HorizontalTab;
 
 /// Line Feed (`LF`).
+///
+/// *Sequence*: `0x0A` (C0 control code)
 ///
 /// Move the cursor to the next line.
 ///
@@ -228,6 +250,8 @@ pub struct LineFeed;
 
 /// Vertical Tab (`VT`).
 ///
+/// *Sequence*: `0x0B` (C0 control code)
+///
 /// Move the cursor down one line (same as [`LineFeed`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/c_vt/> for
@@ -247,6 +271,8 @@ pub struct VerticalTab;
 
 /// Form Feed (`FF`).
 ///
+/// *Sequence*: `0x0C` (C0 control code)
+///
 /// Move the cursor down one line (same as [`LineFeed`]).
 ///
 /// See <https://terminalguide.namepad.de/seq/c_ff/> for
@@ -265,6 +291,8 @@ pub struct VerticalTab;
 pub struct FormFeed;
 
 /// Carriage Return (`CR`).
+///
+/// *Sequence*: `0x0D` (C0 control code)
 ///
 /// Move the cursor to the left-most column.
 ///
@@ -294,6 +322,11 @@ pub struct FormFeed;
 pub struct CarriageReturn;
 
 /// Set Cursor Position (`CUP`).
+///
+/// *Sequence*: `CSI Ps ; Ps H`
+///
+/// Where the first `Ps` is the row and the second `Ps` is the column.
+/// Default values are 1 for both parameters.
 ///
 /// Move cursor to the position indicated by `row` and `column`.
 ///
@@ -348,6 +381,8 @@ impl Default for SetCursorPosition {
 
 /// Back Index (`DECBI`).
 ///
+/// *Sequence*: `ESC 6`
+///
 /// If the cursor is not on the left-most column of the scroll region this is
 /// the same as [`CursorLeft`] with `amount = 1`.
 ///
@@ -381,6 +416,8 @@ impl Default for SetCursorPosition {
 pub struct BackIndex;
 
 /// Forward Index (`DECFI`).
+///
+/// *Sequence*: `ESC 9`
 ///
 /// If the cursor is not on the right-most column of the scroll region this is
 /// the same as [`CursorRight`] with `amount = 1`.
@@ -416,6 +453,8 @@ pub struct ForwardIndex;
 
 /// Index (`IND`).
 ///
+/// *Sequence*: `ESC D`
+///
 /// Move the cursor to the next line in the scrolling region,
 /// possibly scrolling.
 ///
@@ -448,6 +487,8 @@ pub struct Index;
 
 /// Next Line (`NEL`).
 ///
+/// *Sequence*: `ESC E`
+///
 /// Send [`CarriageReturn`] and [`Index`].
 #[derive(
     Debug,
@@ -463,6 +504,8 @@ pub struct Index;
 pub struct NextLine;
 
 /// Horizontal Tab Set (`HTS`).
+///
+/// *Sequence*: `ESC H`
 ///
 /// Mark current column as tab stop column.
 ///
@@ -482,6 +525,8 @@ pub struct NextLine;
 pub struct HorizontalTabSet;
 
 /// Reverse Index (`RI`).
+///
+/// *Sequence*: `ESC M`
 ///
 /// Move the cursor to the previous line in the scrolling region,
 /// possibly scrolling.
@@ -515,6 +560,8 @@ pub struct ReverseIndex;
 
 /// Cursor Up (`CUU`).
 ///
+/// *Sequence*: `CSI Ps A`
+///
 /// Move cursor up by the specified `amount` of lines.
 ///
 /// If `amount` is greater than the maximum move distance then it is
@@ -546,6 +593,8 @@ pub struct ReverseIndex;
 pub struct CursorUp(pub u16);
 
 /// Cursor Down (`CUD`).
+///
+/// *Sequence*: `CSI Ps B`
 ///
 /// Move cursor down by the specified `amount` of lines.
 ///
@@ -579,6 +628,8 @@ pub struct CursorUp(pub u16);
 pub struct CursorDown(pub u16);
 
 /// Cursor Left (`CUB`).
+///
+/// *Sequence*: `CSI Ps D`
 ///
 /// Move the cursor to the left `amount` cells.
 ///
@@ -627,6 +678,8 @@ pub struct CursorLeft(pub u16);
 
 /// Cursor Right (`CUF`).
 ///
+/// *Sequence*: `CSI Ps C`
+///
 /// Move the cursor right `amount` columns.
 ///
 /// If `amount` is greater than the maximum move distance then it is
@@ -661,6 +714,8 @@ pub struct CursorRight(pub u16);
 
 /// Cursor Next Line (`CNL`).
 ///
+/// *Sequence*: `CSI Ps E`
+///
 /// Move `amount` lines down and to the beginning of the line.
 ///
 /// If `amount` is 0, it is adjusted to 1.
@@ -685,6 +740,8 @@ pub struct CursorNextLine(pub u16);
 
 /// Cursor Previous Line (`CPL`).
 ///
+/// *Sequence*: `CSI Ps F`
+///
 /// Move `amount` lines up and to the beginning of the line.
 ///
 /// If `amount` is 0, it is adjusted to 1.
@@ -708,6 +765,8 @@ pub struct CursorNextLine(pub u16);
 pub struct CursorPreviousLine(pub u16);
 
 /// Cursor Horizontal Absolute (`CHA`).
+///
+/// *Sequence*: `CSI Ps G`
 ///
 /// Move the cursor to column `col` on the current line.
 ///
@@ -734,6 +793,8 @@ pub struct CursorPreviousLine(pub u16);
 pub struct CursorHorizontalAbsolute(pub u16);
 
 /// Cursor Horizontal Forward Tabulation (`CHT`).
+///
+/// *Sequence*: `CSI Ps I`
 ///
 /// Invoke horizontal tab `amount` times.
 ///
@@ -768,6 +829,8 @@ pub struct CursorHorizontalForwardTab {
 
 /// Cursor Horizontal Backward Tabulation (`CBT`).
 ///
+/// *Sequence*: `CSI Ps Z`
+///
 /// Move cursor to the `amount`-th previous tab stop.
 ///
 /// Repeat the following procedure `amount` times:
@@ -796,6 +859,8 @@ pub struct CursorHorizontalForwardTab {
 pub struct CursorHorizontalBackwardTab(pub u16);
 
 /// Cursor Horizontal Position Relative (`HPR`).
+///
+/// *Sequence*: `CSI Ps a`
 ///
 /// Move cursor right by the specified `amount` of columns.
 ///
@@ -831,6 +896,8 @@ pub struct CursorHorizontalRelative(pub u16);
 
 /// Cursor Vertical Position Absolute (`VPA`).
 ///
+/// *Sequence*: `CSI Ps d`
+///
 /// Move the cursor to row `row` on the current column.
 ///
 /// If `row` is 0, it is adjusted to 1. If `row` is greater than the
@@ -860,6 +927,8 @@ pub struct CursorHorizontalRelative(pub u16);
 pub struct CursorVerticalAbsolute(pub u16);
 
 /// Vertical Position Relative (`VPR`).
+///
+/// *Sequence*: `CSI Ps e`
 ///
 /// Move cursor down by the specified `amount` of lines.
 ///
@@ -933,6 +1002,8 @@ pub enum CursorStyle {
 
 /// Select Cursor Style (`DECSCUSR`).
 ///
+/// *Sequence*: `CSI Ps SP q`
+///
 /// Set the cursor style (shape and blinking).
 ///
 /// The cursor style is set using values 0-6:
@@ -962,6 +1033,8 @@ pub struct SetCursorStyle {
 }
 
 /// Request Cursor Style (`DECRQSS`).
+///
+/// *Sequence*: `DCS $ q SP q ST`
 ///
 /// Request the current cursor style.
 ///
@@ -1160,6 +1233,8 @@ impl AnsiMuxEncode for LinuxCursorSize {
 
 /// Linux Cursor Style.
 ///
+/// *Sequence*: `CSI ? Ps ; Ps ; Ps c`
+///
 /// Select Linux cursor style with fine-grained control over appearance.
 ///
 /// This sequence allows setting the cursor shape, flags for attribute
@@ -1212,11 +1287,12 @@ pub struct LinuxCursorStyle {
 
 /// Request Cursor Position Report (`CPR`).
 ///
+/// *Sequence*: `CSI 6 n`
+///
 /// Request the current cursor position.
 ///
-/// The terminal replies with:
-///
-/// `CSI <row> ; <column> R`
+/// The terminal replies with `CSI Ps ; Ps R` where the first `Ps` is
+/// the row and the second `Ps` is the column.
 ///
 /// If [`RelativeCursorOriginMode`] is set, the cursor position is reported
 /// relative to the top left corner of the scroll area. Otherwise, it is
@@ -1241,6 +1317,8 @@ pub struct RequestCursorPosition;
 
 /// Cursor Position Report (`CPR`).
 ///
+/// *Sequence*: `CSI Ps ; Ps R`
+///
 /// Response from the terminal to [`RequestCursorPosition`].
 ///
 /// Contains the current cursor position as `row` and `col`.
@@ -1257,6 +1335,8 @@ pub struct CursorPositionReport {
 }
 
 /// Request Cursor Information Report (`DECCIR`).
+///
+/// *Sequence*: `CSI 1 $ w`
 ///
 /// Request detailed cursor information including position, attributes,
 /// protection status, flags, and character set information.
@@ -1333,16 +1413,15 @@ dcs_bitflags! {
     }
 }
 
-/// Request Cursor Information Report (`DECCIR`).
+/// Cursor Information Report (`DECCIR` response).
+///
+/// *Sequence*: `DCS 1 $ u Pr ; Pc ; Pp ; Srend ; Satt ; Sflag ; Pgl ; Pgr ; Scss ; Sdesig ST`
 ///
 /// Response from the terminal to [`RequestCursorInformationReport`].
 ///
 /// Contains detailed information about the cursor state including
 /// position, attributes, protection, flags, and character set
 /// configuration.
-///
-/// The report is encoded as a DCS sequence with the format:
-/// `DCS 1 $ u Pr; Pc; Pp; Srend; Satt; Sflag; Pgl; Pgr; Scss; Sdesig ST`
 ///
 /// See <https://vt100.net/docs/vt510-rm/DECCIR> for the VT510 specification.
 /// See <https://terminalguide.namepad.de/seq/csi_sw_t_dollar-1/> for
@@ -1491,6 +1570,8 @@ impl<'a> CursorInformationReport<'a> {
 
 /// Request Tab Stop Report (`DECTABSR`).
 ///
+/// *Sequence*: `CSI 2 $ w`
+///
 /// Request a report of the currently set tab stops.
 ///
 /// The terminal replies with a DCS sequence containing the column
@@ -1514,14 +1595,14 @@ impl<'a> CursorInformationReport<'a> {
 #[vtansi(csi, params = ["2"], intermediate = "$", finalbyte = 'w')]
 pub struct RequestTabStopReport;
 
-/// Tab Stop Report (`DECTABSR`).
+/// Tab Stop Report (`DECTABSR` response).
+///
+/// *Sequence*: `DCS 2 $ u Pc / Pc / ... ST`
 ///
 /// Response from the terminal to [`RequestTabStopReport`].
 ///
-/// Contains the column numbers of all currently set tab stops.
-///
-/// The report is encoded as a DCS sequence with the format:
-/// `DCS 2 $ u <data> ST` where data is tab stops separated by `/`.
+/// Contains the column numbers of all currently set tab stops,
+/// where `Pc` values are tab stop column positions separated by `/`.
 ///
 /// Example: `DCS 2 $ u 9/17/25/33 ST`
 ///
