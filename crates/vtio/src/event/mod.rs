@@ -244,6 +244,7 @@
 //! | `0x07` (C0 control code) | [`terminal::Bell`] |
 //! | `DCS $ q m ST` | [`terminal::RequestTextAttributes`] |
 //! | `ESC c` | [`terminal::FullReset`] |
+//! | `CSI ! p` | [`terminal::SoftReset`] |
 //! | `ESC Z` | [`terminal::RequestTerminalID`] |
 //! | `CSI c` or `CSI 0 c` | [`terminal::RequestPrimaryDeviceAttributes`] |
 //! | `CSI ? Ps ; Ps ; ... c` | [`terminal::PrimaryDeviceAttributesResponse`] |

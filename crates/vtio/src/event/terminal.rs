@@ -517,6 +517,45 @@ pub struct RequestTextAttributes;
 #[vtansi(esc, finalbyte = 'c')]
 pub struct FullReset;
 
+/// Soft Terminal Reset (`DECSTR`).
+///
+/// *Sequence*: `CSI ! p`
+///
+/// Performs a soft reset of the terminal state.
+///
+/// Unlike [`FullReset`] (RIS), this performs a partial reset that preserves
+/// some terminal state such as:
+/// - The current screen (primary or alternate)
+/// - The scrollback buffer contents
+/// - Tab stops
+/// - Palette colors
+///
+/// The soft reset typically resets:
+/// - Cursor position to home (1, 1)
+/// - SGR attributes to default
+/// - Character sets to default (ASCII)
+/// - Origin mode to absolute
+/// - Insert/replace mode to replace
+/// - Selective erase mode
+/// - Cursor visibility (makes cursor visible)
+///
+/// The exact behavior varies by terminal implementation.
+///
+/// See <https://vt100.net/docs/vt510-rm/DECSTR.html> for the VT510
+/// specification.
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "!", finalbyte = 'p')]
+pub struct SoftReset;
+
 /// Request Terminal ID (`DECID`).
 ///
 /// *Sequence*: `ESC Z`
@@ -1756,5 +1795,16 @@ mod tests {
         assert_eq!(with_data.get_value_as_str("colors"), Some("256"));
         assert!(with_data.get("RGB").is_some());
         assert!(with_data.get("RGB").unwrap().value.is_none());
+    }
+
+    #[test]
+    fn test_soft_reset_encoding() {
+        let reset = SoftReset;
+
+        let mut buf = Vec::new();
+        reset.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        assert_eq!(encoded, "\x1b[!p");
     }
 }
