@@ -724,3 +724,160 @@ pub struct SetSingleWidthLine;
 )]
 #[vtansi(esc, intermediate = "#", finalbyte = '6')]
 pub struct SetDoubleWidthLine;
+
+/// Insert Character (`ICH`).
+///
+/// *Sequence*: `CSI Ps @`
+///
+/// Insert `amount` blank character(s) at the current cursor position.
+///
+/// Inserts `amount` blank (space) characters at the current cursor position.
+/// The character at the cursor and all characters to its right are shifted
+/// right by `amount` positions. Characters shifted past the right margin
+/// are lost.
+///
+/// If the current cursor column is not between the left and right margin, it
+/// does nothing.
+///
+/// If `amount` is greater than the remaining number of characters in the
+/// scrolling region, it is adjusted down.
+///
+/// In left and right margin mode, the margins are respected; characters are
+/// only scrolled in the scroll region.
+///
+/// All newly inserted blank space is colored according to the current SGR
+/// state.
+///
+/// Does not change the cursor position.
+///
+/// This unsets the pending wrap state without wrapping.
+///
+/// See <https://terminalguide.namepad.de/seq/csi_x40_at/> for
+/// terminal support specifics.
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, finalbyte = '@')]
+pub struct InsertCharacter(pub u16);
+
+/// Erase Character (`ECH`).
+///
+/// *Sequence*: `CSI Ps X`
+///
+/// Erase `amount` character(s) at the current cursor position.
+///
+/// Erases `amount` characters starting at the current cursor position.
+/// Characters are erased by replacing them with spaces using the current
+/// SGR attributes (background color, etc.).
+///
+/// Unlike [`DeleteCharacter`], this does not shift characters; it only
+/// replaces them with blanks in place.
+///
+/// If `amount` extends beyond the right margin, only characters up to the
+/// right margin are erased.
+///
+/// Does not change the cursor position.
+///
+/// This unsets the pending wrap state without wrapping.
+///
+/// See <https://terminalguide.namepad.de/seq/csi_cx/> for
+/// terminal support specifics.
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, finalbyte = 'X')]
+pub struct EraseCharacter(pub u16);
+
+/// Repeat Character (`REP`).
+///
+/// *Sequence*: `CSI Ps b`
+///
+/// Repeat the preceding graphic character `amount` times.
+///
+/// Repeats the most recently printed graphic character `amount` times at
+/// the current cursor position. The cursor advances as if the character
+/// were typed that many times.
+///
+/// If no graphic character has been printed since the terminal was reset
+/// or since the last control function, the behavior is undefined (typically
+/// nothing happens or a space is repeated).
+///
+/// The repeated character uses the current SGR attributes, which may differ
+/// from the attributes used when the character was originally printed.
+///
+/// This is commonly used by applications to efficiently output repeated
+/// characters without sending the same byte multiple times.
+///
+/// See <https://terminalguide.namepad.de/seq/csi_sb/> for
+/// terminal support specifics.
+#[derive(
+    Debug,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, finalbyte = 'b')]
+pub struct RepeatCharacter(pub u16);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vtansi::AnsiEncode;
+
+    #[test]
+    fn test_insert_character_encoding() {
+        assert_eq!(InsertCharacter(1).encode_ansi().unwrap(), b"\x1b[1@");
+        assert_eq!(InsertCharacter(5).encode_ansi().unwrap(), b"\x1b[5@");
+        assert_eq!(InsertCharacter(10).encode_ansi().unwrap(), b"\x1b[10@");
+    }
+
+    #[test]
+    fn test_insert_character_default() {
+        // Default parameter value of 1
+        assert_eq!(InsertCharacter(1).encode_ansi().unwrap(), b"\x1b[1@");
+    }
+
+    #[test]
+    fn test_erase_character_encoding() {
+        assert_eq!(EraseCharacter(1).encode_ansi().unwrap(), b"\x1b[1X");
+        assert_eq!(EraseCharacter(5).encode_ansi().unwrap(), b"\x1b[5X");
+        assert_eq!(EraseCharacter(10).encode_ansi().unwrap(), b"\x1b[10X");
+    }
+
+    #[test]
+    fn test_erase_character_default() {
+        // Default parameter value of 1
+        assert_eq!(EraseCharacter(1).encode_ansi().unwrap(), b"\x1b[1X");
+    }
+
+    #[test]
+    fn test_repeat_character_encoding() {
+        assert_eq!(RepeatCharacter(1).encode_ansi().unwrap(), b"\x1b[1b");
+        assert_eq!(RepeatCharacter(5).encode_ansi().unwrap(), b"\x1b[5b");
+        assert_eq!(RepeatCharacter(80).encode_ansi().unwrap(), b"\x1b[80b");
+    }
+
+    #[test]
+    fn test_repeat_character_default() {
+        // Default parameter value of 1
+        assert_eq!(RepeatCharacter(1).encode_ansi().unwrap(), b"\x1b[1b");
+    }
+}

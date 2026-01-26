@@ -192,6 +192,9 @@
 //! | `CSI ? Ps K` where `Ps` = 0 (default) | [`screen::SelectiveEraseLineRight`] |
 //! | `CSI ? 1 K` | [`screen::SelectiveEraseLineLeft`] |
 //! | `CSI ? 2 K` | [`screen::SelectiveEraseLineComplete`] |
+//! | `CSI Ps @` | [`screen::InsertCharacter`] |
+//! | `CSI Ps X` | [`screen::EraseCharacter`] |
+//! | `CSI Ps b` | [`screen::RepeatCharacter`] |
 //! | `CSI Ps L` | [`screen::InsertLine`] |
 //! | `CSI Ps M` | [`screen::DeleteLine`] |
 //! | `CSI Ps P` | [`screen::DeleteCharacter`] |
