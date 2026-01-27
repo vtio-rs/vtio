@@ -1849,4 +1849,78 @@ mod tests {
         });
         assert!(found, "OperatingStatusReportPrivate should be parsed");
     }
+
+    #[test]
+    fn test_graphics_attributes_report_with_single_value() {
+        use crate::event::terminal::{
+            GraphicsAttributesReport, GraphicsAttributesValue, GraphicsItem,
+            GraphicsStatus,
+        };
+
+        let mut parser = TerminalInputParser::new();
+
+        // CSI ? 1 ; 0 ; 256 S - color registers with single value
+        let mut result: Option<GraphicsAttributesReport> = None;
+        parser.feed_with(b"\x1b[?1;0;256S", &mut |event| {
+            if let Some(report) =
+                event.downcast_ref::<GraphicsAttributesReport>()
+            {
+                result = Some(report.clone());
+            }
+        });
+
+        let report = result.expect("GraphicsAttributesReport should be parsed");
+        assert_eq!(report.item, GraphicsItem::ColorRegisters);
+        assert_eq!(report.status, GraphicsStatus::Success);
+        assert_eq!(report.value, Some(GraphicsAttributesValue::Single(256)));
+    }
+
+    #[test]
+    fn test_graphics_attributes_report_with_pair_value() {
+        use crate::event::terminal::{
+            GraphicsAttributesReport, GraphicsAttributesValue, GraphicsItem,
+            GraphicsStatus,
+        };
+
+        let mut parser = TerminalInputParser::new();
+
+        // CSI ? 2 ; 0 ; 800 ; 600 S - sixel geometry with width/height
+        let mut result: Option<GraphicsAttributesReport> = None;
+        parser.feed_with(b"\x1b[?2;0;800;600S", &mut |event| {
+            if let Some(report) =
+                event.downcast_ref::<GraphicsAttributesReport>()
+            {
+                result = Some(report.clone());
+            }
+        });
+
+        let report = result.expect("GraphicsAttributesReport should be parsed");
+        assert_eq!(report.item, GraphicsItem::SixelGeometry);
+        assert_eq!(report.status, GraphicsStatus::Success);
+        assert_eq!(report.value, Some(GraphicsAttributesValue::Pair(800, 600)));
+    }
+
+    #[test]
+    fn test_graphics_attributes_report_without_value() {
+        use crate::event::terminal::{
+            GraphicsAttributesReport, GraphicsItem, GraphicsStatus,
+        };
+
+        let mut parser = TerminalInputParser::new();
+
+        // CSI ? 3 ; 3 S - failed with no value (optional flatten field is None)
+        let mut result: Option<GraphicsAttributesReport> = None;
+        parser.feed_with(b"\x1b[?3;3S", &mut |event| {
+            if let Some(report) =
+                event.downcast_ref::<GraphicsAttributesReport>()
+            {
+                result = Some(report.clone());
+            }
+        });
+
+        let report = result.expect("GraphicsAttributesReport should be parsed");
+        assert_eq!(report.item, GraphicsItem::RegisGeometry);
+        assert_eq!(report.status, GraphicsStatus::Failed);
+        assert_eq!(report.value, None);
+    }
 }

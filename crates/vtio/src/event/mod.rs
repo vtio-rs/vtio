@@ -317,6 +317,8 @@
 //! | `CSI > 0 q` | [`terminal::RequestTerminalNameAndVersion`] |
 //! | `DCS > \| Pt ST` | [`terminal::TerminalNameAndVersionResponse`] |
 //! | `CSI Ps # y` | [`screen::SelectChecksumExtension`] |
+//! | `CSI ? Pi ; Pa ; Pv S` | [`terminal::RequestOrSetGraphicsAttributes`], [`terminal::GraphicsAttributesReport`] |
+//! | `CSI > Ps s` | [`terminal::SetShiftEscapeOptions`] |
 //! | `CSI ? 1042 h` / `CSI ? 1042 l` | [`terminal::EnableUrgencyHintOnBellMode`] / [`terminal::DisableUrgencyHintOnBellMode`] |
 //! | `CSI ? 1043 h` / `CSI ? 1043 l` | [`terminal::EnableRaiseWindowOnBellMode`] / [`terminal::DisableRaiseWindowOnBellMode`] |
 //! | `CSI ? 1045 h` / `CSI ? 1045 l` | [`terminal::EnableExtendedReverseWraparoundMode`] / [`terminal::DisableExtendedReverseWraparoundMode`] |

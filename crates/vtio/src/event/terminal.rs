@@ -1640,6 +1640,473 @@ impl TerminalNameAndVersionResponse<'_> {
     }
 }
 
+// ============================================================================
+// XTerm-Specific Queries
+// ============================================================================
+
+/// Graphics attribute item for [`RequestOrSetGraphicsAttributes`] and [`GraphicsAttributesReport`].
+///
+/// Specifies which graphics attribute to query or modify.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    num_enum::IntoPrimitive,
+    num_enum::TryFromPrimitive,
+    vtansi::derive::ToAnsi,
+    vtansi::derive::FromAnsi,
+)]
+#[repr(u8)]
+pub enum GraphicsItem {
+    /// Number of color registers available for sixel/ReGIS graphics.
+    ColorRegisters = 1,
+    /// Sixel graphics geometry (width x height in pixels).
+    SixelGeometry = 2,
+    /// `ReGIS` graphics geometry (width x height in pixels).
+    RegisGeometry = 3,
+}
+
+/// Graphics attribute action for [`RequestOrSetGraphicsAttributes`].
+///
+/// Specifies what operation to perform on the graphics attribute.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    num_enum::IntoPrimitive,
+    num_enum::TryFromPrimitive,
+    vtansi::derive::ToAnsi,
+    vtansi::derive::FromAnsi,
+)]
+#[repr(u8)]
+pub enum GraphicsAction {
+    /// Read the current value.
+    #[default]
+    Read = 1,
+    /// Reset to the default value.
+    Reset = 2,
+    /// Set to a specific value.
+    Set = 3,
+    /// Read the maximum allowed value.
+    ReadMax = 4,
+}
+
+/// Graphics attribute status in [`GraphicsAttributesReport`].
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    num_enum::IntoPrimitive,
+    num_enum::TryFromPrimitive,
+    vtansi::derive::ToAnsi,
+    vtansi::derive::FromAnsi,
+)]
+#[repr(u8)]
+pub enum GraphicsStatus {
+    /// Operation successful.
+    Success = 0,
+    /// Item not recognized.
+    UnrecognizedItem = 1,
+    /// Action not recognized.
+    UnrecognizedAction = 2,
+    /// Operation failed (terminal unable to comply).
+    Failed = 3,
+}
+
+/// Graphics attribute value in [`GraphicsAttributesReport`] and [`RequestOrSetGraphicsAttributes`].
+///
+/// Represents the optional value(s) returned in graphics attribute responses:
+/// - `None`: No value (e.g., for failed operations)
+/// - `Single(v)`: Single value (e.g., color register count)
+/// - `Pair(w, h)`: Two values (e.g., geometry width and height)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GraphicsAttributesValue {
+    /// Single value (e.g., color register count).
+    Single(u16),
+    /// Pair of values (e.g., width and height for geometry).
+    Pair(u16, u16),
+}
+
+impl<'a> vtansi::TryFromAnsiIter<'a> for GraphicsAttributesValue {
+    fn try_from_ansi_iter<I>(iter: &mut I) -> Result<Self, vtansi::ParseError>
+    where
+        I: Iterator<Item = &'a [u8]>,
+    {
+        let first = iter.next();
+        let second = iter.next();
+
+        match (first, second) {
+            (None, _) => Err(vtansi::ParseError::InvalidValue(
+                "missing attribute value".to_string(),
+            )),
+            (Some(v1_bytes), None) => {
+                let v1 = <u16 as vtansi::TryFromAnsi>::try_from_ansi(v1_bytes)?;
+                Ok(Self::Single(v1))
+            }
+            (Some(v1_bytes), Some(v2_bytes)) => {
+                let v1 = <u16 as vtansi::TryFromAnsi>::try_from_ansi(v1_bytes)?;
+                let v2 = <u16 as vtansi::TryFromAnsi>::try_from_ansi(v2_bytes)?;
+                Ok(Self::Pair(v1, v2))
+            }
+        }
+    }
+}
+
+impl<'a> vtansi::TryFromAnsi<'a> for GraphicsAttributesValue {
+    fn try_from_ansi(bytes: &'a [u8]) -> Result<Self, vtansi::ParseError> {
+        <Self as vtansi::TryFromAnsiIter>::try_from_ansi_iter(
+            &mut bytes.split(|&c| c == b';'),
+        )
+    }
+}
+
+impl vtansi::AnsiEncode for GraphicsAttributesValue {
+    fn encode_ansi_into<W: std::io::Write + ?Sized>(
+        &self,
+        sink: &mut W,
+    ) -> Result<usize, vtansi::EncodeError> {
+        match *self {
+            Self::Single(v) => vtansi::encode::write_int(sink, v),
+            Self::Pair(v1, v2) => {
+                let mut count = vtansi::encode::write_int(sink, v1)?;
+                count += vtansi::write_byte_into(sink, b';')?;
+                count += vtansi::encode::write_int(sink, v2)?;
+                Ok(count)
+            }
+        }
+    }
+}
+
+/// Set or request graphics attributes (`XTSMGRAPHICS`).
+///
+/// *Sequence*: `CSI ? Pi ; Pa ; Pv S`
+///
+/// Query or modify graphics-related attributes such as the number of color
+/// registers or graphics geometry for `SIXEL` and `ReGIS` graphics.
+///
+/// # Parameters
+///
+/// - `item`: The graphics attribute to query/modify ([`GraphicsItem`])
+///   - `1`: Number of color registers
+///   - `2`: Sixel graphics geometry
+///   - `3`: `ReGIS` graphics geometry
+///
+/// - `action`: The operation to perform ([`GraphicsAction`])
+///   - `1`: Read current value
+///   - `2`: Reset to default
+///   - `3`: Set to specified value
+///   - `4`: Read maximum value
+///
+/// - `value`: Optional value(s) for set operations
+///   - For color registers: single value (number of colors)
+///   - For geometry: two values (width, height in pixels)
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::terminal::{RequestOrSetGraphicsAttributes, GraphicsItem, GraphicsAction};
+/// use vtansi::AnsiEncode;
+///
+/// // Query current number of color registers
+/// let cmd = RequestOrSetGraphicsAttributes::read(GraphicsItem::ColorRegisters);
+/// let mut buf = Vec::new();
+/// cmd.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[?1;1S");
+///
+/// // Query maximum sixel geometry
+/// let cmd = RequestOrSetGraphicsAttributes::read_max(GraphicsItem::SixelGeometry);
+/// let mut buf = Vec::new();
+/// cmd.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[?2;4S");
+///
+/// // Set sixel geometry to 800x600
+/// let cmd = RequestOrSetGraphicsAttributes::set_geometry(GraphicsItem::SixelGeometry, 800, 600);
+/// let mut buf = Vec::new();
+/// cmd.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[?2;3;800;600S");
+/// ```
+///
+/// # Response
+///
+/// The terminal responds with [`GraphicsAttributesReport`].
+///
+/// # See Also
+///
+/// - [`GraphicsAttributesReport`] - Response from the terminal
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>
+#[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput)]
+#[vtansi(csi, private = '?', finalbyte = 'S')]
+pub struct RequestOrSetGraphicsAttributes {
+    /// The graphics item to query or modify.
+    pub item: GraphicsItem,
+    /// The action to perform.
+    pub action: GraphicsAction,
+    /// Optional value(s) for the operation.
+    ///
+    /// For color registers, this is `Single(count)`.
+    /// For geometry items, this is `Pair(width, height)`.
+    #[vtansi(flatten)]
+    pub value: Option<GraphicsAttributesValue>,
+}
+
+impl RequestOrSetGraphicsAttributes {
+    /// Create a read request for the current value of a graphics item.
+    #[must_use]
+    pub const fn read(item: GraphicsItem) -> Self {
+        Self {
+            item,
+            action: GraphicsAction::Read,
+            value: None,
+        }
+    }
+
+    /// Create a read request for the maximum value of a graphics item.
+    #[must_use]
+    pub const fn read_max(item: GraphicsItem) -> Self {
+        Self {
+            item,
+            action: GraphicsAction::ReadMax,
+            value: None,
+        }
+    }
+
+    /// Create a reset request for a graphics item.
+    #[must_use]
+    pub const fn reset(item: GraphicsItem) -> Self {
+        Self {
+            item,
+            action: GraphicsAction::Reset,
+            value: None,
+        }
+    }
+
+    /// Create a set request for color registers.
+    #[must_use]
+    pub const fn set_color_registers(count: u16) -> Self {
+        Self {
+            item: GraphicsItem::ColorRegisters,
+            action: GraphicsAction::Set,
+            value: Some(GraphicsAttributesValue::Single(count)),
+        }
+    }
+
+    /// Create a set request for graphics geometry.
+    #[must_use]
+    pub const fn set_geometry(
+        item: GraphicsItem,
+        width: u16,
+        height: u16,
+    ) -> Self {
+        Self {
+            item,
+            action: GraphicsAction::Set,
+            value: Some(GraphicsAttributesValue::Pair(width, height)),
+        }
+    }
+}
+
+/// Graphics attributes report response (`XTSMGRAPHICS` response).
+///
+/// *Sequence*: `CSI ? Pi ; Ps ; Pv S`
+///
+/// Response from the terminal to a [`RequestOrSetGraphicsAttributes`] request.
+///
+/// # Response Values
+///
+/// - `item`: The graphics item that was queried
+/// - `status`: Result of the operation ([`GraphicsStatus`])
+/// - `value`: The value(s) returned
+///   - For color registers: single value
+///   - For geometry: (width, height) in pixels
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::terminal::{
+///     GraphicsAttributesReport, GraphicsAttributesValue, GraphicsItem, GraphicsStatus,
+/// };
+///
+/// // A successful response for color registers
+/// let report = GraphicsAttributesReport {
+///     item: GraphicsItem::ColorRegisters,
+///     status: GraphicsStatus::Success,
+///     value: Some(GraphicsAttributesValue::Single(256)),
+/// };
+/// assert_eq!(report.color_registers(), Some(256));
+///
+/// // A successful response for sixel geometry
+/// let report = GraphicsAttributesReport {
+///     item: GraphicsItem::SixelGeometry,
+///     status: GraphicsStatus::Success,
+///     value: Some(GraphicsAttributesValue::Pair(1920, 1080)),
+/// };
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiInput)]
+#[vtansi(csi, private = '?', finalbyte = 'S')]
+pub struct GraphicsAttributesReport {
+    /// The graphics item that was queried.
+    pub item: GraphicsItem,
+    /// The status of the operation.
+    pub status: GraphicsStatus,
+    /// The value(s) returned.
+    ///
+    /// For color registers, this is `Single(count)`.
+    /// For geometry items, this is `Pair(width, height)`.
+    #[vtansi(flatten)]
+    pub value: Option<GraphicsAttributesValue>,
+}
+
+impl GraphicsAttributesReport {
+    /// Check if the operation was successful.
+    #[must_use]
+    pub const fn is_success(&self) -> bool {
+        matches!(self.status, GraphicsStatus::Success)
+    }
+
+    /// Get the color register count if this is a color registers response.
+    #[must_use]
+    pub const fn color_registers(&self) -> Option<u16> {
+        if matches!(self.item, GraphicsItem::ColorRegisters) {
+            match self.value {
+                Some(
+                    GraphicsAttributesValue::Single(count)
+                    | GraphicsAttributesValue::Pair(count, _),
+                ) => Some(count),
+                None => None,
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Get the geometry if this is a geometry response.
+    #[must_use]
+    pub const fn geometry(&self) -> Option<(u16, u16)> {
+        match self.item {
+            GraphicsItem::SixelGeometry | GraphicsItem::RegisGeometry => {
+                match self.value {
+                    Some(GraphicsAttributesValue::Pair(width, height)) => {
+                        Some((width, height))
+                    }
+                    Some(GraphicsAttributesValue::Single(_)) | None => None,
+                }
+            }
+            GraphicsItem::ColorRegisters => None,
+        }
+    }
+}
+
+/// Shift-escape option for [`SetShiftEscapeOptions`].
+///
+/// Controls how the terminal interprets escape sequences when the shift key
+/// is held.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    num_enum::IntoPrimitive,
+    num_enum::TryFromPrimitive,
+    vtansi::derive::ToAnsi,
+    vtansi::derive::FromAnsi,
+)]
+#[repr(u8)]
+pub enum ShiftEscapeOption {
+    /// Disable shift-escape processing (default).
+    #[default]
+    Disabled = 0,
+    /// Enable shift-escape processing.
+    ///
+    /// When enabled, holding shift while pressing a key that would normally
+    /// send an escape sequence may alter the sequence (e.g., for function keys).
+    Enabled = 1,
+}
+
+/// Set shift-escape options (`XTSHIFTESCAPE`).
+///
+/// *Sequence*: `CSI > Ps s`
+///
+/// Controls how the terminal handles escape sequences when the shift key
+/// is held. This affects the behavior of function keys and other special
+/// keys when used with the shift modifier.
+///
+/// # Parameters
+///
+/// - `0`: Disable shift-escape processing (default)
+/// - `1`: Enable shift-escape processing
+///
+/// When shift-escape processing is enabled, the terminal may modify escape
+/// sequences sent for certain keys when shift is held, providing a way to
+/// distinguish shifted vs unshifted key presses.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::terminal::{SetShiftEscapeOptions, ShiftEscapeOption};
+/// use vtansi::AnsiEncode;
+///
+/// // Enable shift-escape processing
+/// let cmd = SetShiftEscapeOptions::enabled();
+/// let mut buf = Vec::new();
+/// cmd.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[>1s");
+///
+/// // Disable shift-escape processing (0 is explicitly encoded)
+/// let cmd = SetShiftEscapeOptions::disabled();
+/// let mut buf = Vec::new();
+/// cmd.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[>0s");
+/// ```
+///
+/// # See Also
+///
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, private = '>', finalbyte = 's')]
+pub struct SetShiftEscapeOptions {
+    /// The shift-escape option.
+    pub option: ShiftEscapeOption,
+}
+
+impl SetShiftEscapeOptions {
+    /// Create a command to enable shift-escape processing.
+    #[must_use]
+    pub const fn enabled() -> Self {
+        Self {
+            option: ShiftEscapeOption::Enabled,
+        }
+    }
+
+    /// Create a command to disable shift-escape processing.
+    #[must_use]
+    pub const fn disabled() -> Self {
+        Self {
+            option: ShiftEscapeOption::Disabled,
+        }
+    }
+
+    /// Check if shift-escape processing is enabled.
+    #[must_use]
+    pub const fn is_enabled(&self) -> bool {
+        matches!(self.option, ShiftEscapeOption::Enabled)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1906,5 +2373,153 @@ mod tests {
         let encoded = String::from_utf8(buf).unwrap();
 
         assert_eq!(encoded, "\x1b[!p");
+    }
+
+    // ========================================================================
+    // XTerm-Specific Queries (Section 2.5) Tests
+    // ========================================================================
+
+    #[test]
+    fn test_set_graphics_attributes_read_color_registers() {
+        let cmd =
+            RequestOrSetGraphicsAttributes::read(GraphicsItem::ColorRegisters);
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[?1;1S");
+    }
+
+    #[test]
+    fn test_set_graphics_attributes_read_sixel_geometry() {
+        let cmd =
+            RequestOrSetGraphicsAttributes::read(GraphicsItem::SixelGeometry);
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[?2;1S");
+    }
+
+    #[test]
+    fn test_set_graphics_attributes_read_max_sixel_geometry() {
+        let cmd = RequestOrSetGraphicsAttributes::read_max(
+            GraphicsItem::SixelGeometry,
+        );
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[?2;4S");
+    }
+
+    #[test]
+    fn test_set_graphics_attributes_reset() {
+        let cmd =
+            RequestOrSetGraphicsAttributes::reset(GraphicsItem::ColorRegisters);
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[?1;2S");
+    }
+
+    #[test]
+    fn test_set_graphics_attributes_set_color_registers() {
+        let cmd = RequestOrSetGraphicsAttributes::set_color_registers(256);
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[?1;3;256S");
+    }
+
+    #[test]
+    fn test_set_graphics_attributes_set_geometry() {
+        let cmd = RequestOrSetGraphicsAttributes::set_geometry(
+            GraphicsItem::SixelGeometry,
+            800,
+            600,
+        );
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[?2;3;800;600S");
+    }
+
+    #[test]
+    fn test_graphics_attributes_report_encoding() {
+        let report = GraphicsAttributesReport {
+            item: GraphicsItem::ColorRegisters,
+            status: GraphicsStatus::Success,
+            value: Some(GraphicsAttributesValue::Single(256)),
+        };
+
+        let mut buf = Vec::new();
+        report.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[?1;0;256S");
+    }
+
+    #[test]
+    fn test_graphics_attributes_report_encoding_geometry() {
+        let report = GraphicsAttributesReport {
+            item: GraphicsItem::SixelGeometry,
+            status: GraphicsStatus::Success,
+            value: Some(GraphicsAttributesValue::Pair(800, 600)),
+        };
+
+        let mut buf = Vec::new();
+        report.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[?2;0;800;600S");
+    }
+
+    #[test]
+    fn test_graphics_attributes_report_failed() {
+        let report = GraphicsAttributesReport {
+            item: GraphicsItem::RegisGeometry,
+            status: GraphicsStatus::Failed,
+            value: None,
+        };
+
+        assert!(!report.is_success());
+        assert!(report.geometry().is_none());
+    }
+
+    #[test]
+    fn test_set_shift_escape_options_enabled() {
+        let cmd = SetShiftEscapeOptions::enabled();
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[>1s");
+        assert!(cmd.is_enabled());
+    }
+
+    #[test]
+    fn test_set_shift_escape_options_disabled() {
+        let cmd = SetShiftEscapeOptions::disabled();
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        // 0 is explicitly encoded
+        assert_eq!(&buf, b"\x1b[>0s");
+        assert!(!cmd.is_enabled());
+    }
+
+    #[test]
+    fn test_set_shift_escape_options_default() {
+        let cmd = SetShiftEscapeOptions::default();
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        // 0 is explicitly encoded
+        assert_eq!(&buf, b"\x1b[>0s");
+        assert!(!cmd.is_enabled());
     }
 }
