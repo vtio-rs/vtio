@@ -1,6 +1,7 @@
 //! Screen and line erase commands.
 
 use crate::event::common::{Coords, Rect};
+use crate::event::sgr::SgrAttr;
 
 /// Erase Display Below (`ED`).
 ///
@@ -1256,6 +1257,522 @@ impl From<RectangularChecksumData> for u16 {
     }
 }
 
+// =============================================================================
+// Rectangular Attribute Operations (DECCARA, DECRARA, DECSACE, XTREPORTSGR)
+// =============================================================================
+
+/// Character attribute codes for rectangular attribute operations.
+///
+/// These codes are used with [`ChangeRectangleAttributes`] and
+/// [`ReverseRectangleAttributes`] to specify which character attributes
+/// to change or reverse within a rectangular area.
+///
+/// The values correspond to a subset of SGR codes:
+///
+/// | Value | Attribute |
+/// |-------|-----------|
+/// | 0 | Attributes off (DECRARA only) |
+/// | 1 | Bold |
+/// | 4 | Underline |
+/// | 5 | Blink |
+/// | 7 | Negative image (reverse video) |
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::RectangleAttributeCodes;
+///
+/// // Create attribute codes for bold and underline
+/// let attrs = RectangleAttributeCodes::new(vec![1, 4]);
+/// ```
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Default,
+    Hash,
+    vtansi::derive::ToAnsi,
+    vtansi::derive::FromAnsi,
+)]
+#[vtansi(transparent, delimiter = b';')]
+pub struct RectangleAttributeCodes(pub Vec<u16>);
+
+impl RectangleAttributeCodes {
+    /// Create a new `RectangleAttributeCodes` from a vector of attribute codes.
+    #[must_use]
+    pub fn new(codes: Vec<u16>) -> Self {
+        Self(codes)
+    }
+
+    /// Create attribute codes for bold.
+    #[must_use]
+    pub fn bold() -> Self {
+        Self(vec![1])
+    }
+
+    /// Create attribute codes for underline.
+    #[must_use]
+    pub fn underline() -> Self {
+        Self(vec![4])
+    }
+
+    /// Create attribute codes for blink.
+    #[must_use]
+    pub fn blink() -> Self {
+        Self(vec![5])
+    }
+
+    /// Create attribute codes for reverse video (negative image).
+    #[must_use]
+    pub fn reverse() -> Self {
+        Self(vec![7])
+    }
+
+    /// Create attribute codes to turn all attributes off.
+    ///
+    /// This is only meaningful for [`ReverseRectangleAttributes`].
+    #[must_use]
+    pub fn off() -> Self {
+        Self(vec![0])
+    }
+
+    /// Returns `true` if the list is empty.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Returns the number of attribute codes.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl From<Vec<u16>> for RectangleAttributeCodes {
+    fn from(codes: Vec<u16>) -> Self {
+        Self(codes)
+    }
+}
+
+impl<const N: usize> From<[u16; N]> for RectangleAttributeCodes {
+    fn from(codes: [u16; N]) -> Self {
+        Self(codes.to_vec())
+    }
+}
+
+/// Change Attributes in Rectangular Area (`DECCARA`).
+///
+/// *Sequence*: `CSI Pt ; Pl ; Pb ; Pr ; Ps... $ r`
+///
+/// Changes the visual character attributes for all character positions within
+/// the specified rectangular area. The attributes are specified as SGR-like
+/// parameter values.
+///
+/// The operation is affected by [`SelectAttributeChangeExtent`]:
+/// - In stream mode (default), the operation affects the stream of character
+///   positions from (Pt, Pl) to (Pb, Pr).
+/// - In rectangle mode, the operation affects the rectangular area bounded by
+///   these coordinates.
+///
+/// # Parameters
+///
+/// - `area`: The rectangular area to modify (top, left, bottom, right)
+/// - `attributes`: The attribute codes to apply (see [`RectangleAttributeCodes`])
+///
+/// Supported attribute values:
+/// - `0`: Attributes off (resets attributes in the area)
+/// - `1`: Bold
+/// - `4`: Underline
+/// - `5`: Blink
+/// - `7`: Negative image (reverse video)
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::{ChangeRectangleAttributes, RectangleAttributeCodes};
+/// use vtio::event::Rect;
+/// use vtansi::AnsiEncode;
+///
+/// // Make a rectangular area bold and underlined
+/// let change = ChangeRectangleAttributes {
+///     area: Rect::new(1, 1, 10, 80),
+///     attributes: RectangleAttributeCodes::new(vec![1, 4]),
+/// };
+/// let mut buf = Vec::new();
+/// change.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[1;1;10;80;1;4$r");
+/// ```
+///
+/// # See Also
+///
+/// - [`ReverseRectangleAttributes`] - Toggle attributes in rectangular area
+/// - [`SelectAttributeChangeExtent`] - Control stream vs rectangle mode
+/// - <https://vt100.net/docs/vt510-rm/DECCARA.html>
+#[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput)]
+#[vtansi(csi, intermediate = "$", finalbyte = 'r')]
+pub struct ChangeRectangleAttributes {
+    /// The rectangular area to modify.
+    #[vtansi(flatten)]
+    pub area: Rect,
+    /// The attribute codes to apply.
+    #[vtansi(flatten)]
+    pub attributes: RectangleAttributeCodes,
+}
+
+impl ChangeRectangleAttributes {
+    /// Create a new change rectangle attributes command.
+    #[must_use]
+    pub fn new(area: Rect, attributes: RectangleAttributeCodes) -> Self {
+        Self { area, attributes }
+    }
+
+    /// Create a command to make a rectangular area bold.
+    #[must_use]
+    pub fn bold(area: Rect) -> Self {
+        Self::new(area, RectangleAttributeCodes::bold())
+    }
+
+    /// Create a command to underline a rectangular area.
+    #[must_use]
+    pub fn underline(area: Rect) -> Self {
+        Self::new(area, RectangleAttributeCodes::underline())
+    }
+
+    /// Create a command to make a rectangular area blink.
+    #[must_use]
+    pub fn blink(area: Rect) -> Self {
+        Self::new(area, RectangleAttributeCodes::blink())
+    }
+
+    /// Create a command to apply reverse video to a rectangular area.
+    #[must_use]
+    pub fn reverse(area: Rect) -> Self {
+        Self::new(area, RectangleAttributeCodes::reverse())
+    }
+}
+
+/// Reverse Attributes in Rectangular Area (`DECRARA`).
+///
+/// *Sequence*: `CSI Pt ; Pl ; Pb ; Pr ; Ps... $ t`
+///
+/// Reverses (toggles) the visual character attributes for all character
+/// positions within the specified rectangular area. Characters that have
+/// the specified attribute will have it removed, and characters that don't
+/// have it will have it applied.
+///
+/// The operation is affected by [`SelectAttributeChangeExtent`]:
+/// - In stream mode (default), the operation affects the stream of character
+///   positions from (Pt, Pl) to (Pb, Pr).
+/// - In rectangle mode, the operation affects the rectangular area bounded by
+///   these coordinates.
+///
+/// # Parameters
+///
+/// - `area`: The rectangular area to modify (top, left, bottom, right)
+/// - `attributes`: The attribute codes to reverse (see [`RectangleAttributeCodes`])
+///
+/// Supported attribute values:
+/// - `0`: Attributes off (not meaningful for reverse operation)
+/// - `1`: Bold
+/// - `4`: Underline
+/// - `5`: Blink
+/// - `7`: Negative image (reverse video)
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::{ReverseRectangleAttributes, RectangleAttributeCodes};
+/// use vtio::event::Rect;
+/// use vtansi::AnsiEncode;
+///
+/// // Toggle reverse video in a rectangular area
+/// let reverse = ReverseRectangleAttributes {
+///     area: Rect::new(5, 10, 15, 70),
+///     attributes: RectangleAttributeCodes::reverse(),
+/// };
+/// let mut buf = Vec::new();
+/// reverse.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[5;10;15;70;7$t");
+/// ```
+///
+/// # See Also
+///
+/// - [`ChangeRectangleAttributes`] - Set attributes in rectangular area
+/// - [`SelectAttributeChangeExtent`] - Control stream vs rectangle mode
+/// - <https://vt100.net/docs/vt510-rm/DECRARA.html>
+#[derive(Debug, Clone, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput)]
+#[vtansi(csi, intermediate = "$", finalbyte = 't')]
+pub struct ReverseRectangleAttributes {
+    /// The rectangular area to modify.
+    #[vtansi(flatten)]
+    pub area: Rect,
+    /// The attribute codes to reverse.
+    #[vtansi(flatten)]
+    pub attributes: RectangleAttributeCodes,
+}
+
+impl ReverseRectangleAttributes {
+    /// Create a new reverse rectangle attributes command.
+    #[must_use]
+    pub fn new(area: Rect, attributes: RectangleAttributeCodes) -> Self {
+        Self { area, attributes }
+    }
+
+    /// Create a command to toggle bold in a rectangular area.
+    #[must_use]
+    pub fn bold(area: Rect) -> Self {
+        Self::new(area, RectangleAttributeCodes::bold())
+    }
+
+    /// Create a command to toggle underline in a rectangular area.
+    #[must_use]
+    pub fn underline(area: Rect) -> Self {
+        Self::new(area, RectangleAttributeCodes::underline())
+    }
+
+    /// Create a command to toggle blink in a rectangular area.
+    #[must_use]
+    pub fn blink(area: Rect) -> Self {
+        Self::new(area, RectangleAttributeCodes::blink())
+    }
+
+    /// Create a command to toggle reverse video in a rectangular area.
+    #[must_use]
+    pub fn reverse(area: Rect) -> Self {
+        Self::new(area, RectangleAttributeCodes::reverse())
+    }
+}
+
+/// The extent mode for attribute change operations.
+///
+/// This enum specifies how [`ChangeRectangleAttributes`] and
+/// [`ReverseRectangleAttributes`] interpret the rectangular area.
+///
+/// See [`SelectAttributeChangeExtent`] for usage.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    num_enum::TryFromPrimitive,
+    num_enum::IntoPrimitive,
+    vtansi::derive::FromAnsi,
+    vtansi::derive::ToAnsi,
+)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(u16)]
+pub enum AttributeChangeExtent {
+    /// Stream mode (default).
+    ///
+    /// DECCARA and DECRARA affect the stream of character positions
+    /// starting at (top, left) and ending at (bottom, right), wrapping
+    /// at the end of each line.
+    #[default]
+    Stream = 0,
+    /// Rectangle mode.
+    ///
+    /// DECCARA and DECRARA affect the rectangular area bounded by
+    /// the coordinates, operating on a true rectangle of cells.
+    Rectangle = 2,
+}
+
+/// Select Attribute Change Extent (`DECSACE`).
+///
+/// *Sequence*: `CSI Ps * x`
+///
+/// Controls whether [`ChangeRectangleAttributes`] and
+/// [`ReverseRectangleAttributes`] operate in stream mode or rectangle mode.
+///
+/// # Parameters
+///
+/// - `extent`: The extent mode to select
+///   - `0` or `1`: Stream mode (default) - affects character positions in
+///     reading order from start to end position
+///   - `2`: Rectangle mode - affects all positions within the rectangular
+///     bounds
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::{SelectAttributeChangeExtent, AttributeChangeExtent};
+/// use vtansi::AnsiEncode;
+///
+/// // Select rectangle mode
+/// let select = SelectAttributeChangeExtent(AttributeChangeExtent::Rectangle);
+/// let mut buf = Vec::new();
+/// select.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[2*x");
+///
+/// // Select stream mode (default)
+/// let select = SelectAttributeChangeExtent::stream();
+/// let mut buf = Vec::new();
+/// select.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[0*x");
+/// ```
+///
+/// # See Also
+///
+/// - [`ChangeRectangleAttributes`] - Set attributes in rectangular area
+/// - [`ReverseRectangleAttributes`] - Toggle attributes in rectangular area
+/// - <https://vt100.net/docs/vt510-rm/DECSACE.html>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "*", finalbyte = 'x')]
+pub struct SelectAttributeChangeExtent(pub AttributeChangeExtent);
+
+impl SelectAttributeChangeExtent {
+    /// Create a command to select stream mode.
+    #[must_use]
+    pub const fn stream() -> Self {
+        Self(AttributeChangeExtent::Stream)
+    }
+
+    /// Create a command to select rectangle mode.
+    #[must_use]
+    pub const fn rectangle() -> Self {
+        Self(AttributeChangeExtent::Rectangle)
+    }
+}
+
+/// Request Selected Graphic Rendition (`XTREPORTSGR`).
+///
+/// *Sequence*: `CSI # |`
+///
+/// Requests the terminal to report the current SGR (Select Graphic Rendition)
+/// attributes at the cursor position. The terminal responds with
+/// [`SelectedSgrReport`].
+///
+/// This is an xterm extension that allows applications to query the current
+/// text attributes.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::RequestSelectedSgr;
+/// use vtansi::AnsiEncode;
+///
+/// let request = RequestSelectedSgr;
+/// let mut buf = Vec::new();
+/// request.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[#|");
+/// ```
+///
+/// # See Also
+///
+/// - [`SelectedSgrReport`] - The response to this request
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = '|')]
+pub struct RequestSelectedSgr;
+
+/// Report of selected graphic rendition (`XTREPORTSGR` response).
+///
+/// *Sequence*: `CSI Pm # |`
+///
+/// This is the terminal's response to [`RequestSelectedSgr`], reporting
+/// the current SGR attributes at the cursor position.
+///
+/// The response contains the same parameters that would be used in an
+/// SGR sequence to reproduce the current attributes.
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::{SelectedSgrReport, SelectedSgrAttributes};
+/// use vtansi::AnsiEncode;
+///
+/// // Report indicating bold (1) and red foreground (31)
+/// let report = SelectedSgrReport {
+///     attributes: SelectedSgrAttributes::new(vec![1, 31]),
+/// };
+/// let mut buf = Vec::new();
+/// report.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[1;31#|");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestSelectedSgr`] - The request that triggers this response
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiInput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = '|')]
+pub struct SelectedSgrReport {
+    /// The SGR attribute codes.
+    #[vtansi(flatten)]
+    pub attributes: SelectedSgrAttributes,
+}
+
+/// Wrapper for parsing SGR attribute codes in [`SelectedSgrReport`].
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Default,
+    Hash,
+    vtansi::derive::ToAnsi,
+    vtansi::derive::FromAnsi,
+)]
+#[vtansi(transparent, delimiter = b';')]
+pub struct SelectedSgrAttributes(pub Vec<u16>);
+
+impl SelectedSgrAttributes {
+    /// Create a new `SelectedSgrAttributes` from a vector of attribute codes.
+    #[must_use]
+    pub fn new(codes: Vec<u16>) -> Self {
+        Self(codes)
+    }
+
+    /// Returns `true` if no attributes are set.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Returns the number of attribute codes.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Returns the attribute codes as a slice.
+    #[must_use]
+    pub fn as_slice(&self) -> &[u16] {
+        &self.0
+    }
+
+    /// Parse the attributes into [`SgrAttr`] values.
+    ///
+    /// This provides a higher-level interpretation of the raw attribute codes.
+    #[must_use]
+    pub fn to_sgr_attrs(&self) -> Vec<SgrAttr> {
+        // Simple conversion for basic SGR codes
+        // More complex codes (like 256-color or RGB) would need context
+        self.0
+            .iter()
+            .filter_map(|&code| {
+                use crate::event::sgr::SimpleSgrCode;
+                SimpleSgrCode::try_from(code).ok().map(SgrAttr::from)
+            })
+            .collect()
+    }
+}
+
+impl From<Vec<u16>> for SelectedSgrAttributes {
+    fn from(codes: Vec<u16>) -> Self {
+        Self(codes)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1436,5 +1953,129 @@ mod tests {
     fn test_repeat_character_default() {
         // Default parameter value of 1
         assert_eq!(RepeatCharacter(1).encode_ansi().unwrap(), b"\x1b[1b");
+    }
+
+    // =========================================================================
+    // Rectangular Attribute Operations Tests
+    // =========================================================================
+
+    #[test]
+    fn test_change_rectangle_attributes_encoding() {
+        let change = ChangeRectangleAttributes {
+            area: Rect::new(1, 1, 10, 80),
+            attributes: RectangleAttributeCodes::new(vec![1, 4]),
+        };
+        assert_eq!(change.encode_ansi().unwrap(), b"\x1b[1;1;10;80;1;4$r");
+    }
+
+    #[test]
+    fn test_change_rectangle_attributes_bold() {
+        let change = ChangeRectangleAttributes::bold(Rect::new(5, 10, 15, 70));
+        assert_eq!(change.encode_ansi().unwrap(), b"\x1b[5;10;15;70;1$r");
+    }
+
+    #[test]
+    fn test_change_rectangle_attributes_underline() {
+        let change =
+            ChangeRectangleAttributes::underline(Rect::new(1, 1, 24, 80));
+        assert_eq!(change.encode_ansi().unwrap(), b"\x1b[1;1;24;80;4$r");
+    }
+
+    #[test]
+    fn test_change_rectangle_attributes_multiple() {
+        // Bold, underline, and blink
+        let change = ChangeRectangleAttributes::new(
+            Rect::new(1, 1, 5, 40),
+            RectangleAttributeCodes::new(vec![1, 4, 5]),
+        );
+        assert_eq!(change.encode_ansi().unwrap(), b"\x1b[1;1;5;40;1;4;5$r");
+    }
+
+    #[test]
+    fn test_reverse_rectangle_attributes_encoding() {
+        let reverse = ReverseRectangleAttributes {
+            area: Rect::new(5, 10, 15, 70),
+            attributes: RectangleAttributeCodes::reverse(),
+        };
+        assert_eq!(reverse.encode_ansi().unwrap(), b"\x1b[5;10;15;70;7$t");
+    }
+
+    #[test]
+    fn test_reverse_rectangle_attributes_bold() {
+        let reverse = ReverseRectangleAttributes::bold(Rect::new(1, 1, 10, 80));
+        assert_eq!(reverse.encode_ansi().unwrap(), b"\x1b[1;1;10;80;1$t");
+    }
+
+    #[test]
+    fn test_reverse_rectangle_attributes_multiple() {
+        // Toggle bold and underline
+        let reverse = ReverseRectangleAttributes::new(
+            Rect::new(2, 2, 8, 40),
+            RectangleAttributeCodes::new(vec![1, 4]),
+        );
+        assert_eq!(reverse.encode_ansi().unwrap(), b"\x1b[2;2;8;40;1;4$t");
+    }
+
+    #[test]
+    fn test_select_attribute_change_extent_stream() {
+        let select = SelectAttributeChangeExtent::stream();
+        assert_eq!(select.encode_ansi().unwrap(), b"\x1b[0*x");
+    }
+
+    #[test]
+    fn test_select_attribute_change_extent_rectangle() {
+        let select = SelectAttributeChangeExtent::rectangle();
+        assert_eq!(select.encode_ansi().unwrap(), b"\x1b[2*x");
+    }
+
+    #[test]
+    fn test_select_attribute_change_extent_default() {
+        let select = SelectAttributeChangeExtent::default();
+        assert_eq!(select.0, AttributeChangeExtent::Stream);
+    }
+
+    #[test]
+    fn test_request_selected_sgr_encoding() {
+        let request = RequestSelectedSgr;
+        assert_eq!(request.encode_ansi().unwrap(), b"\x1b[#|");
+    }
+
+    #[test]
+    fn test_rectangle_attribute_codes_constructors() {
+        assert_eq!(RectangleAttributeCodes::bold().0, vec![1]);
+        assert_eq!(RectangleAttributeCodes::underline().0, vec![4]);
+        assert_eq!(RectangleAttributeCodes::blink().0, vec![5]);
+        assert_eq!(RectangleAttributeCodes::reverse().0, vec![7]);
+        assert_eq!(RectangleAttributeCodes::off().0, vec![0]);
+    }
+
+    #[test]
+    fn test_rectangle_attribute_codes_from_array() {
+        let attrs: RectangleAttributeCodes = [1u16, 4, 7].into();
+        assert_eq!(attrs.0, vec![1, 4, 7]);
+        assert_eq!(attrs.len(), 3);
+        assert!(!attrs.is_empty());
+    }
+
+    #[test]
+    fn test_attribute_change_extent_values() {
+        assert_eq!(u16::from(AttributeChangeExtent::Stream), 0);
+        assert_eq!(u16::from(AttributeChangeExtent::Rectangle), 2);
+        assert_eq!(
+            AttributeChangeExtent::try_from(0u16).unwrap(),
+            AttributeChangeExtent::Stream
+        );
+        assert_eq!(
+            AttributeChangeExtent::try_from(2u16).unwrap(),
+            AttributeChangeExtent::Rectangle
+        );
+    }
+
+    #[test]
+    fn test_selected_sgr_attributes_methods() {
+        let attrs = SelectedSgrAttributes::new(vec![1, 31, 4]);
+        assert_eq!(attrs.len(), 3);
+        assert!(!attrs.is_empty());
+        assert_eq!(attrs.as_slice(), &[1, 31, 4]);
     }
 }

@@ -250,6 +250,11 @@
 //! | `CSI Pts ; Pls ; Pbs ; Prs ; Pps ; Ptd ; Pld ; Ppd $ v` | [`screen::CopyRectangle`] |
 //! | `CSI Pid ; Pp ; Pt ; Pl ; Pb ; Pr * y` | [`screen::RequestRectangularChecksum`] |
 //! | `DCS Pid ! ~ D...D ST` | [`screen::RectangularChecksumReport`] |
+//! | `CSI Pt ; Pl ; Pb ; Pr ; Ps... $ r` | [`screen::ChangeRectangleAttributes`] |
+//! | `CSI Pt ; Pl ; Pb ; Pr ; Ps... $ t` | [`screen::ReverseRectangleAttributes`] |
+//! | `CSI Ps * x` | [`screen::SelectAttributeChangeExtent`] |
+//! | `CSI # \|` | [`screen::RequestSelectedSgr`] |
+//! | `CSI Pm # \|` (response) | [`screen::SelectedSgrReport`] |
 //!
 //! ## scroll
 //!
