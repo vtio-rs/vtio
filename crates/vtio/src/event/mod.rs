@@ -316,6 +316,7 @@
 //! | `DCS Ps + r Pt ST` | [`terminal::TermcapQueryResponse`] |
 //! | `CSI > 0 q` | [`terminal::RequestTerminalNameAndVersion`] |
 //! | `DCS > \| Pt ST` | [`terminal::TerminalNameAndVersionResponse`] |
+//! | `CSI Ps # y` | [`screen::SelectChecksumExtension`] |
 //! | `CSI ? 1042 h` / `CSI ? 1042 l` | [`terminal::EnableUrgencyHintOnBellMode`] / [`terminal::DisableUrgencyHintOnBellMode`] |
 //! | `CSI ? 1043 h` / `CSI ? 1043 l` | [`terminal::EnableRaiseWindowOnBellMode`] / [`terminal::DisableRaiseWindowOnBellMode`] |
 //! | `CSI ? 1045 h` / `CSI ? 1045 l` | [`terminal::EnableExtendedReverseWraparoundMode`] / [`terminal::DisableExtendedReverseWraparoundMode`] |

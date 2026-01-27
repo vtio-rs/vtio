@@ -1098,6 +1098,118 @@ impl CopyRectangle {
     }
 }
 
+/// Checksum extension mode for [`SelectChecksumExtension`].
+///
+/// Controls how `DECRQCRA` (Request Checksum of Rectangular Area) calculates
+/// checksums.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    num_enum::IntoPrimitive,
+    num_enum::TryFromPrimitive,
+    vtansi::derive::ToAnsi,
+    vtansi::derive::FromAnsi,
+)]
+#[repr(u8)]
+pub enum ChecksumExtension {
+    /// DEC-compatible mode (default).
+    ///
+    /// Uses only the 8-bit character value in the checksum calculation,
+    /// ignoring combining characters and wide character status.
+    #[default]
+    DecCompatible = 0,
+    /// Negated checksum mode.
+    ///
+    /// Same as DEC-compatible, but the checksum is negated.
+    Negated = 1,
+    /// `XTerm` extended mode.
+    ///
+    /// Includes combining characters and double-width character handling
+    /// in the checksum calculation.
+    Extended = 2,
+    /// Extended negated mode.
+    ///
+    /// Combines extended mode with checksum negation.
+    ExtendedNegated = 3,
+}
+
+/// Select checksum extension mode (`XTCHECKSUM`).
+///
+/// *Sequence*: `CSI Ps # y`
+///
+/// Selects the checksum extension mode used by `DECRQCRA` (Request Checksum
+/// of Rectangular Area). This controls how checksums are calculated for
+/// rectangular areas.
+///
+/// # Parameters
+///
+/// The `mode` parameter controls the checksum calculation:
+/// - `0`: DEC-compatible mode (default) - uses only 8-bit character values
+/// - `1`: Negated mode - same as DEC-compatible but with negated result
+/// - `2`: Extended mode - includes combining characters and double-width handling
+/// - `3`: Extended negated mode - combines extended mode with negation
+///
+/// # Example
+///
+/// ```
+/// use vtio::event::screen::{SelectChecksumExtension, ChecksumExtension};
+/// use vtansi::AnsiEncode;
+///
+/// // Select extended checksum mode
+/// let cmd = SelectChecksumExtension { mode: ChecksumExtension::Extended };
+/// let mut buf = Vec::new();
+/// cmd.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[2#y");
+///
+/// // Reset to DEC-compatible mode (0 is explicitly encoded)
+/// let cmd = SelectChecksumExtension::default();
+/// let mut buf = Vec::new();
+/// cmd.encode_ansi_into(&mut buf).unwrap();
+/// assert_eq!(&buf, b"\x1b[0#y");
+/// ```
+///
+/// # See Also
+///
+/// - [`RequestRectangularChecksum`] - The checksum request command
+/// - <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, intermediate = "#", finalbyte = 'y')]
+pub struct SelectChecksumExtension {
+    /// The checksum extension mode.
+    pub mode: ChecksumExtension,
+}
+
+impl SelectChecksumExtension {
+    /// Create a new checksum extension selection command.
+    #[must_use]
+    pub const fn new(mode: ChecksumExtension) -> Self {
+        Self { mode }
+    }
+
+    /// Select DEC-compatible checksum mode.
+    #[must_use]
+    pub const fn dec_compatible() -> Self {
+        Self {
+            mode: ChecksumExtension::DecCompatible,
+        }
+    }
+
+    /// Select extended checksum mode.
+    #[must_use]
+    pub const fn extended() -> Self {
+        Self {
+            mode: ChecksumExtension::Extended,
+        }
+    }
+}
+
 /// Request Checksum of Rectangular Area (`DECRQCRA`).
 ///
 /// *Sequence*: `CSI Pid ; Pp ; Pt ; Pl ; Pb ; Pr * y`
@@ -1852,6 +1964,62 @@ mod tests {
         let copy = CopyRectangle::with_pages(source, 2, 15, 5, 3);
         assert_eq!(copy.source_page, 2);
         assert_eq!(copy.dest_page, 3);
+    }
+
+    #[test]
+    fn test_select_checksum_extension_default() {
+        let cmd = SelectChecksumExtension::default();
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        // Mode 0 (DecCompatible) is explicitly encoded
+        assert_eq!(&buf, b"\x1b[0#y");
+    }
+
+    #[test]
+    fn test_select_checksum_extension_dec_compatible() {
+        let cmd = SelectChecksumExtension::dec_compatible();
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        // Mode 0 (DecCompatible) is explicitly encoded
+        assert_eq!(&buf, b"\x1b[0#y");
+    }
+
+    #[test]
+    fn test_select_checksum_extension_extended() {
+        let cmd = SelectChecksumExtension::extended();
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[2#y");
+    }
+
+    #[test]
+    fn test_select_checksum_extension_negated() {
+        let cmd = SelectChecksumExtension {
+            mode: ChecksumExtension::Negated,
+        };
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[1#y");
+    }
+
+    #[test]
+    fn test_select_checksum_extension_extended_negated() {
+        let cmd = SelectChecksumExtension {
+            mode: ChecksumExtension::ExtendedNegated,
+        };
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"\x1b[3#y");
     }
 
     #[test]
