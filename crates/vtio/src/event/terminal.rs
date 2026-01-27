@@ -372,6 +372,106 @@ terminal_mode!(
     UnsolicitedColorPaletteReportMode, private = '?', params = ["2031"]
 );
 
+// ============================================================================
+// Additional XTerm Private Modes
+// ============================================================================
+
+terminal_mode!(
+    /// Urgency window manager hint on bell.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1042 h` (set) / `CSI ? 1042 l` (reset)
+    ///
+    /// When enabled, the terminal sets the urgency hint in the window manager
+    /// when a bell character (BEL, 0x07) is received. This typically causes
+    /// the window to flash or be highlighted in the taskbar to attract the
+    /// user's attention.
+    ///
+    /// This is an xterm extension.
+    ///
+    /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for details.
+    UrgencyHintOnBellMode, private = '?', params = ["1042"]
+);
+
+terminal_mode!(
+    /// Raise window on bell.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1043 h` (set) / `CSI ? 1043 l` (reset)
+    ///
+    /// When enabled, the terminal raises (brings to front) its window when
+    /// a bell character (BEL, 0x07) is received.
+    ///
+    /// This is an xterm extension.
+    ///
+    /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for details.
+    RaiseWindowOnBellMode, private = '?', params = ["1043"]
+);
+
+terminal_mode!(
+    /// Extended reverse-wraparound mode (`XTREVWRAP2`).
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1045 h` (set) / `CSI ? 1045 l` (reset)
+    ///
+    /// When enabled, allows the cursor to reverse-wrap from the first column
+    /// of the first line to the last column of the last line. This extends
+    /// the behavior of the standard reverse-wraparound mode (DECAWM).
+    ///
+    /// This mode is similar to reverse-wraparound but provides extended
+    /// behavior across the entire screen rather than just within scroll
+    /// margins.
+    ///
+    /// This is an xterm extension.
+    ///
+    /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for details.
+    ExtendedReverseWraparoundMode, private = '?', params = ["1045"]
+);
+
+terminal_mode!(
+    /// Enable switching to/from alternate screen buffer.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1046 h` (set) / `CSI ? 1046 l` (reset)
+    ///
+    /// Controls whether the terminal allows switching between the primary
+    /// and alternate screen buffers using the various alternate screen
+    /// control sequences (modes 47, 1047, 1049).
+    ///
+    /// When reset, attempts to switch screen buffers are ignored.
+    ///
+    /// This is an xterm extension.
+    ///
+    /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for details.
+    AllowAlternateScreenSwitchingMode, private = '?', params = ["1046"]
+);
+
+terminal_mode!(
+    /// Save cursor as in DECSC.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1048 h` (set) / `CSI ? 1048 l` (reset)
+    ///
+    /// When set, saves the cursor position (like DECSC, `ESC 7`).
+    /// When reset, restores the cursor position (like DECRC, `ESC 8`).
+    ///
+    /// This provides an alternative way to save/restore cursor state using
+    /// the DEC private mode mechanism, which allows it to be combined with
+    /// other mode operations.
+    ///
+    /// This is an xterm extension. It is typically used in combination with
+    /// mode 1047 (alternate screen buffer with clear) to implement the
+    /// behavior of mode 1049.
+    ///
+    /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for details.
+    SaveCursorMode, private = '?', params = ["1048"]
+);
+
 /// Bracketed paste start.
 ///
 /// *Sequence*: `CSI 200 ~`

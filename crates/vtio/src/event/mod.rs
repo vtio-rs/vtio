@@ -9,6 +9,9 @@
 //! | `OSC 52 ; Pc ; Pd ST` (set) | [`clipboard::Clipboard`] with [`clipboard::ClipboardAction::Set`] |
 //! | `OSC 52 ; Pc ; ? ST` (query) | [`clipboard::Clipboard`] with [`clipboard::ClipboardAction::Query`] |
 //! | `OSC 52 ; Pc ; Pd ST` (response) | [`clipboard::ClipboardResponse`] |
+//! | `CSI ? 1040 h` / `CSI ? 1040 l` | [`clipboard::EnableKeepSelectionMode`] / [`clipboard::DisableKeepSelectionMode`] |
+//! | `CSI ? 1041 h` / `CSI ? 1041 l` | [`clipboard::EnableUseClipboardSelectionMode`] / [`clipboard::DisableUseClipboardSelectionMode`] |
+//! | `CSI ? 1044 h` / `CSI ? 1044 l` | [`clipboard::EnableReuseClipboardDataMode`] / [`clipboard::DisableReuseClipboardDataMode`] |
 //!
 //! ## charset
 //!
@@ -213,6 +216,8 @@
 //! | `CSI M Cb Cx Cy` (UTF-8 encoded values) | [`mouse::MultibyteMouseEvent`] |
 //! | `CSI ? Ps ; Ps m` | [`mouse::SetLinuxMousePointerStyle`] |
 //! | `CSI Ps ; Ps ; Ps ; Ps ; Ps T` | [`mouse::TrackMouse`] |
+//! | `CSI > Ps p` | [`mouse::SetPointerMode`] |
+//! | `CSI ? 1016 h` / `CSI ? 1016 l` | [`mouse::EnableSgrMousePixelMode`] / [`mouse::DisableSgrMousePixelMode`] |
 //!
 //! ## screen
 //!
@@ -311,6 +316,11 @@
 //! | `DCS Ps + r Pt ST` | [`terminal::TermcapQueryResponse`] |
 //! | `CSI > 0 q` | [`terminal::RequestTerminalNameAndVersion`] |
 //! | `DCS > \| Pt ST` | [`terminal::TerminalNameAndVersionResponse`] |
+//! | `CSI ? 1042 h` / `CSI ? 1042 l` | [`terminal::EnableUrgencyHintOnBellMode`] / [`terminal::DisableUrgencyHintOnBellMode`] |
+//! | `CSI ? 1043 h` / `CSI ? 1043 l` | [`terminal::EnableRaiseWindowOnBellMode`] / [`terminal::DisableRaiseWindowOnBellMode`] |
+//! | `CSI ? 1045 h` / `CSI ? 1045 l` | [`terminal::EnableExtendedReverseWraparoundMode`] / [`terminal::DisableExtendedReverseWraparoundMode`] |
+//! | `CSI ? 1046 h` / `CSI ? 1046 l` | [`terminal::EnableAllowAlternateScreenSwitchingMode`] / [`terminal::DisableAllowAlternateScreenSwitchingMode`] |
+//! | `CSI ? 1048 h` / `CSI ? 1048 l` | [`terminal::EnableSaveCursorMode`] / [`terminal::DisableSaveCursorMode`] |
 //!
 //! ## window
 //!

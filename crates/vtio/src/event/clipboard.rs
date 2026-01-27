@@ -23,6 +23,63 @@
 
 use std::fmt;
 
+use crate::terminal_mode;
+
+// ============================================================================
+// Selection-related Terminal Modes
+// ============================================================================
+
+terminal_mode!(
+    /// Keep selection when not highlighted.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1040 h` (set) / `CSI ? 1040 l` (reset)
+    ///
+    /// When enabled, the terminal keeps the current selection data even when
+    /// the selection is no longer visually highlighted. This allows the
+    /// selection to persist after it is cleared from the display.
+    ///
+    /// This is an xterm extension.
+    ///
+    /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for details.
+    KeepSelectionMode, private = '?', params = ["1040"]
+);
+
+terminal_mode!(
+    /// Use CLIPBOARD selection.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1041 h` (set) / `CSI ? 1041 l` (reset)
+    ///
+    /// When enabled, xterm uses the CLIPBOARD selection for copy/paste
+    /// operations by default rather than the PRIMARY selection. This affects
+    /// middle-click paste and other selection-related operations.
+    ///
+    /// This is an xterm extension.
+    ///
+    /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for details.
+    UseClipboardSelectionMode, private = '?', params = ["1041"]
+);
+
+terminal_mode!(
+    /// Reuse recent CLIPBOARD data.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1044 h` (set) / `CSI ? 1044 l` (reset)
+    ///
+    /// When enabled, xterm reuses the most recent CLIPBOARD data when
+    /// requested. This can improve performance by avoiding redundant
+    /// clipboard queries.
+    ///
+    /// This is an xterm extension.
+    ///
+    /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for details.
+    ReuseClipboardDataMode, private = '?', params = ["1044"]
+);
+
 /// Clipboard target for OSC 52 operations.
 ///
 /// These correspond to X11 selection types (except for `System` which is
