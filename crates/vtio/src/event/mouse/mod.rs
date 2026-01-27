@@ -59,6 +59,7 @@ pub use mode::{
     DisableMouseReportSgrMode,
     DisableMouseWheelToCursorKeysMode,
     DisableMouseX10Mode,
+    DisableSgrMousePixelMode,
     EnableMouseAnyEventTrackingMode,
     EnableMouseCapture,
     EnableMouseClickAndDragTrackingMode,
@@ -69,6 +70,7 @@ pub use mode::{
     EnableMouseReportSgrMode,
     EnableMouseWheelToCursorKeysMode,
     EnableMouseX10Mode,
+    EnableSgrMousePixelMode,
     MouseAnyEventTrackingMode,
     MouseClickAndDragTrackingMode,
     MouseDownUpTrackingMode,
@@ -78,6 +80,8 @@ pub use mode::{
     MouseReportSgrMode,
     MouseWheelToCursorKeysMode,
     MouseX10Mode,
+    // Pointer mode
+    PointerMode,
     RequestMouseAnyEventTrackingMode,
     RequestMouseClickAndDragTrackingMode,
     RequestMouseDownUpTrackingMode,
@@ -87,7 +91,10 @@ pub use mode::{
     RequestMouseReportSgrMode,
     RequestMouseWheelToCursorKeysMode,
     RequestMouseX10Mode,
+    RequestSgrMousePixelMode,
     SetLinuxMousePointerStyle,
+    SetPointerMode,
+    SgrMousePixelMode,
 };
 
 pub use track::TrackMouse;

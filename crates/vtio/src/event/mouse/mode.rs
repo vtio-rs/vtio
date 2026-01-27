@@ -6,6 +6,74 @@ use vtansi::ansi_composite;
 
 use crate::terminal_mode;
 
+// ============================================================================
+// Pointer Mode (XTSMPOINTER)
+// ============================================================================
+
+/// Pointer mode setting for cursor hiding behavior (`XTSMPOINTER`).
+///
+/// Controls whether and when the mouse pointer is hidden while typing.
+///
+/// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for details.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    num_enum::IntoPrimitive,
+    num_enum::TryFromPrimitive,
+    vtansi::derive::ToAnsi,
+    vtansi::derive::FromAnsi,
+)]
+#[repr(u8)]
+pub enum PointerMode {
+    /// Never hide the mouse pointer.
+    #[default]
+    NeverHide = 0,
+    /// Hide the pointer if mouse tracking is not enabled.
+    HideIfNotTracking = 1,
+    /// Always hide the pointer except when moving it.
+    AlwaysHide = 2,
+}
+
+/// Set pointer mode (`XTSMPOINTER`).
+///
+/// *Sequence*: `CSI > Ps p`
+///
+/// Controls whether and when the mouse pointer is hidden while typing.
+///
+/// The parameter values are:
+/// - 0: Never hide the pointer
+/// - 1: Hide the pointer if mouse tracking is not enabled (default xterm behavior)
+/// - 2: Always hide the pointer except when it is moved
+///
+/// This is an xterm extension.
+///
+/// # Example
+///
+/// ```ignore
+/// use vtio::event::mouse::{SetPointerMode, PointerMode};
+///
+/// // Hide pointer when not tracking mouse
+/// let cmd = SetPointerMode(PointerMode::HideIfNotTracking);
+/// ```
+///
+/// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for details.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, vtansi::derive::AnsiOutput,
+)]
+#[vtansi(csi, private = '>', finalbyte = 'p')]
+pub struct SetPointerMode(pub PointerMode);
+
+impl Default for SetPointerMode {
+    fn default() -> Self {
+        Self(PointerMode::NeverHide)
+    }
+}
+
 //
 // Mouse event modes (mutually exclusive).
 //
@@ -166,6 +234,28 @@ terminal_mode!(
     MouseReportRxvtMode, private = '?', params = ["1015"]
 );
 
+terminal_mode!(
+    /// SGR Mouse Pixel-Mode.
+    ///
+    /// # Sequence
+    ///
+    /// `CSI ? 1016 h` (set) / `CSI ? 1016 l` (reset)
+    ///
+    /// When enabled, mouse coordinates are reported in pixels rather than
+    /// character cells. This provides sub-cell precision for mouse tracking.
+    ///
+    /// This mode extends the SGR mouse format (`CSI ? 1006 h`) to use pixel
+    /// coordinates. The report format is the same as SGR mode, but the
+    /// coordinates represent pixel positions within the terminal window
+    /// rather than cell positions.
+    ///
+    /// This is an xterm extension.
+    ///
+    /// See <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html> for
+    /// details on SGR-Pixels mode.
+    SgrMousePixelMode, private = '?', params = ["1016"]
+);
+
 //
 // Additional mouse-related modes.
 //
@@ -259,4 +349,124 @@ pub struct SetLinuxMousePointerStyle {
     pub attr_xor: u8,
     /// XOR mask for character glyph manipulation.
     pub char_xor: u8,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vtansi::AnsiEncode;
+
+    #[test]
+    fn test_pointer_mode_values() {
+        assert_eq!(u8::from(PointerMode::NeverHide), 0);
+        assert_eq!(u8::from(PointerMode::HideIfNotTracking), 1);
+        assert_eq!(u8::from(PointerMode::AlwaysHide), 2);
+    }
+
+    #[test]
+    fn test_pointer_mode_default() {
+        assert_eq!(PointerMode::default(), PointerMode::NeverHide);
+    }
+
+    #[test]
+    fn test_set_pointer_mode_never_hide_encoding() {
+        let cmd = SetPointerMode(PointerMode::NeverHide);
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        // CSI > 0 p
+        assert_eq!(encoded, "\x1b[>0p");
+    }
+
+    #[test]
+    fn test_set_pointer_mode_hide_if_not_tracking_encoding() {
+        let cmd = SetPointerMode(PointerMode::HideIfNotTracking);
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        // CSI > 1 p
+        assert_eq!(encoded, "\x1b[>1p");
+    }
+
+    #[test]
+    fn test_set_pointer_mode_always_hide_encoding() {
+        let cmd = SetPointerMode(PointerMode::AlwaysHide);
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        // CSI > 2 p
+        assert_eq!(encoded, "\x1b[>2p");
+    }
+
+    #[test]
+    fn test_set_pointer_mode_default() {
+        let cmd = SetPointerMode::default();
+        assert_eq!(cmd.0, PointerMode::NeverHide);
+    }
+
+    #[test]
+    fn test_enable_sgr_mouse_pixel_mode_encoding() {
+        let cmd = EnableSgrMousePixelMode;
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        // CSI ? 1016 h
+        assert_eq!(encoded, "\x1b[?1016h");
+    }
+
+    #[test]
+    fn test_disable_sgr_mouse_pixel_mode_encoding() {
+        let cmd = DisableSgrMousePixelMode;
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        // CSI ? 1016 l
+        assert_eq!(encoded, "\x1b[?1016l");
+    }
+
+    #[test]
+    fn test_request_sgr_mouse_pixel_mode_encoding() {
+        let cmd = RequestSgrMousePixelMode;
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        // CSI ? 1016 $ p
+        assert_eq!(encoded, "\x1b[?1016$p");
+    }
+
+    #[test]
+    fn test_save_sgr_mouse_pixel_mode_encoding() {
+        let cmd = SaveSgrMousePixelMode;
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        // CSI ? 1016 s
+        assert_eq!(encoded, "\x1b[?1016s");
+    }
+
+    #[test]
+    fn test_restore_sgr_mouse_pixel_mode_encoding() {
+        let cmd = RestoreSgrMousePixelMode;
+
+        let mut buf = Vec::new();
+        cmd.encode_ansi_into(&mut buf).unwrap();
+        let encoded = String::from_utf8(buf).unwrap();
+
+        // CSI ? 1016 r
+        assert_eq!(encoded, "\x1b[?1016r");
+    }
 }
