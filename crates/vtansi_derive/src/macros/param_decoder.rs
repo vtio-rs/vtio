@@ -488,10 +488,36 @@ fn generate_vector_decoding(
 
             if field.is_flatten {
                 // Flattened field: delegate to try_from_ansi_iter
-                quote! {
-                    let #field_name = <#field_type as ::vtansi::parse::TryFromAnsiIter>::try_from_ansi_iter(
-                        &mut #param_iterator
-                    )?;
+                if field.is_optional {
+                    // Optional flattened field: peek by consuming one element,
+                    // if None then field is None, otherwise use once().chain()
+                    // to pass the first element back to the inner type's parser.
+                    quote! {
+                        let #field_name: #field_type = {
+                            match #param_iterator.next() {
+                                ::core::option::Option::None => {
+                                    // Iterator exhausted, field is None
+                                    ::core::option::Option::None
+                                }
+                                ::core::option::Option::Some(__vtansi_first) => {
+                                    // Chain the first element with the rest of the iterator
+                                    let mut __vtansi_chained = ::core::iter::once(__vtansi_first)
+                                        .chain(&mut #param_iterator);
+                                    ::core::option::Option::Some(
+                                        <#inner_type as ::vtansi::parse::TryFromAnsiIter>::try_from_ansi_iter(
+                                            &mut __vtansi_chained
+                                        )?
+                                    )
+                                }
+                            }
+                        };
+                    }
+                } else {
+                    quote! {
+                        let #field_name = <#field_type as ::vtansi::parse::TryFromAnsiIter>::try_from_ansi_iter(
+                            &mut #param_iterator
+                        )?;
+                    }
                 }
             } else if let Some(mux_index) = &field.mux_index {
                 // This field is sourced from a previous param
